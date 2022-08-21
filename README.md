@@ -34,4 +34,4 @@ This library is a reimplementation of the algorithms used in [GeoSteiner](http:/
 
 We also make use of an emscripten build of glpk, named [glpk.js](https://github.com/jvail/glpk.js/).
 
-Thank you to [Glue Digital](glue.digital) who I did the [original npm module.](https://www.npmjs.com/package/rsmt)
+Thank you to [Glue Digital](glue.digital) who did the [original npm module.](https://www.npmjs.com/package/rsmt)
