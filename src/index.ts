@@ -1222,7 +1222,7 @@ const constants = {
 }
 
 const solve = async (lp, msgLevel) => {
-  const solve = (glpk as any)().solve
+  const solve = (await (glpk as any)()).solve
   return solve(lp, msgLevel)
 }
 
@@ -1722,8 +1722,6 @@ async function solveLpOverConstraintPool(bbip) {
     const tableaux = pool.filter((r) => r.selected)
     const lp = { ...bbip.lp, subjectTo: tableaux }
     solution = await solve(lp, constants.GLP_MSG_OFF)
-
-    console.log({ solution })
 
     if (solution.result.status !== constants.GLP_OPT) break
 
