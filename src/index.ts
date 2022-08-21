@@ -91,7 +91,7 @@ function isEmptyRect(emptyRects, i, j) {
  * Determines if two terminals are already connected, with a fast method to
  * join sets when they get linked.
  */
-class DSUF {
+export class DSUF {
   map: any
   constructor() {
     this.map = new Map()
@@ -142,7 +142,13 @@ class DSUF {
  * @param {*} edges list of all edges on the graph, with their lengths
  * @returns the list of edges on the mst
  */
-function mst(edges) {
+export function mst(
+  edges: Array<{
+    p1: number
+    p2: number
+    len: number
+  }>
+) {
   edges.sort((a, b) => a.len - b.len)
   const dsuf = new DSUF()
   const ret: any[] = []
@@ -206,7 +212,7 @@ type Edge = { p1: number; p2: number; len: number }
  * @param {*} emptyRects optional empty rects info to limit edges
  * @returns list of edges between choosen terminals
  */
-function getEdges(terminals, emptyRects = []): Edge[] {
+export function getEdges(terminals, emptyRects = []): Edge[] {
   // TODO: empty rects not implemented yet
   const edges: Edge[] = []
   for (let i = 0; i < terminals.length; i++) {
@@ -2263,7 +2269,7 @@ async function bb(terminals, edges) {
  * @param {*} terminals List of terminals to use
  * @returns The RSMT for the given terminals
  */
-function rsmt(terminals) {
+export function rsmt(terminals) {
   if (terminals.length < 2) {
     return {
       terminals,
