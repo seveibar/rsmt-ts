@@ -28,6 +28,14 @@ solution = {
 */
 ```
 
+## Methods
+
+| Method           | Description                                                                                                        |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `rsmt` (default) | Returns terminals, steiners and edges [(note: edges seem to have issues, see resolution)](./src/tests/mst.test.ts) |
+| `mst`            | Compute edges of minimum spanning tree                                                                             |
+| `getEdges`       | Returns all edges between all points                                                                               |
+
 ## Acknowledgements
 
 This library is a reimplementation of the algorithms used in [GeoSteiner](http://www.geosteiner.com/), based on the paper "_A New Exact Algorithm for Rectilinear Steiner Trees_" (David M. Warme, 1997).

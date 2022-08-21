@@ -373,7 +373,17 @@ function getBmstLength(terms, bsds) {
  *     ]
  *   }
  */
-function rfst(terminals) {
+export function rfst(terminals: [number, number][]): {
+  terminals: [number, number][]
+  fsts: Array<{
+    terminalIndices: number[]
+    length: number
+    steinerPoints: [number, number][]
+    edges: [number, number][]
+    status: number
+    incompatibleFstIndices: number[]
+  }>
+} {
   // Preprocessing
   const successors = getSuccessors(terminals)
   const emptyRects = getEmptyRects(terminals, successors)
