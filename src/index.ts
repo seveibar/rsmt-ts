@@ -1,72 +1,74 @@
+import glpk from "glpk.js"
+
 /**
  * Compute a matrix to check if the rectangle between two terminals is empty.
- * 
+ *
  * On the matrix, m[i][j] is true if the rectangle between terminals i, j is empty.
  * As this matrix is symmetrical, only the lower half is filled.
- * @param {*} terminals terminals points to consider 
+ * @param {*} terminals terminals points to consider
  * @param {*} successors a neighboring table; see rfst.js:getSuccessors()
  * @returns the lower triangular matrix with empty rect info
  */
 function getEmptyRects(terminals, successors) {
-  const ret = [];
+  const ret: boolean[][] = []
   for (let i = 0; i < terminals.length; i++) {
-    ret[i] = [];
+    ret[i] = []
     for (let j = 0; j < i; j++) {
-      ret[i][j] = false;
+      ret[i][j] = false
     }
   }
   const set = (i, j) => {
     if (i > j) {
-      ret[i][j] = true;
+      ret[i][j] = true
     } else if (i < j) {
-      ret[j][i] = true;
+      ret[j][i] = true
     }
-  };
+  }
 
   for (let i = 0; i < terminals.length; i++) {
-    const p = terminals[i];
-    const [x, y] = p;
+    const p = terminals[i]
+    const [x, y] = p
 
-    let topDist = Infinity;
-		let bottomDist = Infinity;
-		let oldTopDist = Infinity;
-		let oldBottomDist = Infinity;
-		let topX = x;
-		let bottomX = x;
-    
+    let topDist = Infinity
+    let bottomDist = Infinity
+    let oldTopDist = Infinity
+    let oldBottomDist = Infinity
+    let topX = x
+    let bottomX = x
+
     for (let j = successors.east[i]; j >= 0; j = successors.east[j]) {
-      const q = terminals[j];
-      const dx = q[0] - x;
-      let dy = q[1] - y;
+      const q = terminals[j]
+      const dx = q[0] - x
+      let dy = q[1] - y
       // Are they on the same horizontal/vertical line
       if (dx === 0 || dy === 0) {
-        set(i, j);
+        set(i, j)
         continue
       }
       if (dy > 0) {
         // Q is above P
         if (dy <= topDist) {
-          set(i, j);
+          set(i, j)
           if (q[0] > topX) {
-            oldTopDist = topDist;
-            topX = q[0];
+            oldTopDist = topDist
+            topX = q[0]
           }
-          topDist = dy;
+          topDist = dy
         } else if (q[0] === topX && dy <= oldTopDist) {
-          set(i, j);
+          set(i, j)
         }
       } else {
         // Q is below P
-        dy = -dy;
+        dy = -dy
         if (dy <= bottomDist) {
-          set(i, j);
+          set(i, j)
           if (q[0] > bottomX) {
-            oldBottomDist = bottomDist;
-            bottomX = q[0];
+            oldBottomDist = bottomDist
+            bottomX = q[0]
           }
-          bottomDist = dy;
+          bottomDist = dy
         } else if (q[0] === bottomX && dy <= oldBottomDist) {
-          set(i, j);
+          set(i, j)
         }
       }
     }
@@ -90,9 +92,9 @@ function isEmptyRect(emptyRects, i, j) {
  * join sets when they get linked.
  */
 class DSUF {
-
+  map: any
   constructor() {
-    this.map = new Map();
+    this.map = new Map()
   }
 
   areConnected(i, j) {
@@ -100,26 +102,27 @@ class DSUF {
   }
 
   connect(i, j) {
-    const seti = this.map.get(i);
-    const setj = this.map.get(j);
+    const seti = this.map.get(i)
+    const setj = this.map.get(j)
     if (!seti && !setj) {
-      const union = new Set([i, j]);
-      this.map.set(i, union);
-      this.map.set(j, union);
+      const union = new Set([i, j])
+      this.map.set(i, union)
+      this.map.set(j, union)
     } else if (!seti) {
-      setj.add(i);
-      this.map.set(i, setj);
+      setj.add(i)
+      this.map.set(i, setj)
     } else if (!setj) {
-      seti.add(j);
-      this.map.set(j, seti);
+      seti.add(j)
+      this.map.set(j, seti)
     } else if (seti !== setj) {
-      const [bigger, smaller] = seti.size > setj.size ? [seti, setj] : [setj, seti];
-      smaller.forEach(t => {
-        bigger.add(t);
-        this.map.set(t, bigger);
-      });
-      bigger.add(i);
-      bigger.add(j);
+      const [bigger, smaller] =
+        seti.size > setj.size ? [seti, setj] : [setj, seti]
+      smaller.forEach((t) => {
+        bigger.add(t)
+        this.map.set(t, bigger)
+      })
+      bigger.add(i)
+      bigger.add(j)
     }
   }
 
@@ -129,10 +132,9 @@ class DSUF {
    * @param {*} i The member to search
    */
   find(i) {
-    const set = this.map.get(i);
+    const set = this.map.get(i)
     return set ? set.values().next().value : i
   }
-
 }
 
 /**
@@ -141,15 +143,15 @@ class DSUF {
  * @returns the list of edges on the mst
  */
 function mst(edges) {
-  edges.sort((a, b) => a.len - b.len);
-  const dsuf = new DSUF();
-  const ret = [];
-  edges.forEach(e => {
+  edges.sort((a, b) => a.len - b.len)
+  const dsuf = new DSUF()
+  const ret: any[] = []
+  edges.forEach((e) => {
     if (!dsuf.areConnected(e.p1, e.p2)) {
-      ret.push(e);
-      dsuf.connect(e.p1, e.p2);
+      ret.push(e)
+      dsuf.connect(e.p1, e.p2)
     }
-  });
+  })
   return ret
 }
 
@@ -169,7 +171,7 @@ function RDIST(t1, t2) {
  * @returns distance between the points
  */
 function DSTDIR(dir, a, b) {
-  const axis = dir % 2;
+  const axis = dir % 2
   return Math.abs(a[axis] - b[axis])
 }
 
@@ -182,7 +184,7 @@ function DSTDIR(dir, a, b) {
  * @returns distance between the points
  */
 function DSTDIRP(dir, a, b) {
-  const axis = 1 - (dir % 2);
+  const axis = 1 - (dir % 2)
   return Math.abs(a[axis] - b[axis])
 }
 
@@ -196,6 +198,7 @@ function SPOINT(dir, a, b) {
   return dir % 2 ? [a[0], b[1]] : [b[0], a[1]]
 }
 
+type Edge = { p1: number; p2: number; len: number }
 /**
  * Enumerates rectilineal edges for a terminal set.
  * Optionally can use empty rect info to reduce the number of edges
@@ -203,24 +206,24 @@ function SPOINT(dir, a, b) {
  * @param {*} emptyRects optional empty rects info to limit edges
  * @returns list of edges between choosen terminals
  */
-function getEdges(terminals, emptyRects) {
+function getEdges(terminals, emptyRects = []): Edge[] {
   // TODO: empty rects not implemented yet
-  const edges = [];
+  const edges: Edge[] = []
   for (let i = 0; i < terminals.length; i++) {
     for (let j = i + 1; j < terminals.length; j++) {
       edges.push({
         p1: i,
         p2: j,
-        len: RDIST(terminals[i], terminals[j])
-      });
+        len: RDIST(terminals[i], terminals[j]),
+      })
     }
   }
   return edges
 }
 
-function getRmst(terminals, emptyRects) {
-  const edges = getEdges(terminals);
-  const theMst = mst(edges);
+function getRmst(terminals, emptyRects = []) {
+  const edges = getEdges(terminals, emptyRects)
+  const theMst = mst(edges)
   return theMst
 }
 
@@ -230,40 +233,40 @@ function getRmst(terminals, emptyRects) {
  * @returns the BSD table
  */
 function getBSDs(mst) {
-  const edges = [{ p1: 0, p2: 0, len: 0 }, ...mst];
-  const adjacency = getAdjacency(mst);
-  const bsds = { parent: [], edge: [], adjacency, edges };
-  let next = mst.length + 1;
-  bsds.parent[next] = bsds.edge[next] = null;
+  const edges = [{ p1: 0, p2: 0, len: 0 }, ...mst]
+  const adjacency = getAdjacency(mst)
+  const bsds = { parent: [] as any[], edge: [] as any[], adjacency, edges }
+  let next = mst.length + 1
+  bsds.parent[next] = bsds.edge[next] = null
   for (let i = 1; i < edges.length; i++) {
-    let { p1: u, p2: v } = edges[i];
-    let pu = bsds.parent[u];
-    let pv = bsds.parent[v];
+    let { p1: u, p2: v } = edges[i]
+    let pu = bsds.parent[u]
+    let pv = bsds.parent[v]
 
     while (u !== v && pu && pv) {
-      u = pu;
-      v = pv;
-      pu = bsds.parent[u];
-      pv = bsds.parent[v];
+      u = pu
+      v = pv
+      pu = bsds.parent[u]
+      pv = bsds.parent[v]
     }
     if (!pu && !pv) {
-      next++;
-      bsds.parent[u] = next;
-      bsds.parent[v] = next;
-      bsds.edge[u] = i;
-      bsds.edge[v] = i;
+      next++
+      bsds.parent[u] = next
+      bsds.parent[v] = next
+      bsds.edge[u] = i
+      bsds.edge[v] = i
     } else if (!pu && pv) {
-      bsds.parent[u] = pv;
-      bsds.edge[u] = i;
+      bsds.parent[u] = pv
+      bsds.edge[u] = i
     } else if (pu && !pv) {
-      bsds.parent[v] = pu;
-      bsds.edge[v] = i;
+      bsds.parent[v] = pu
+      bsds.edge[v] = i
     }
   }
   // Make sure there are no gaps
   for (let i = 0; i <= next; i++) {
-    if (!bsds.parent[i]) bsds.parent[i] = null;
-    if (!bsds.edge[i]) bsds.edge[i] = null;
+    if (!bsds.parent[i]) bsds.parent[i] = null
+    if (!bsds.edge[i]) bsds.edge[i] = null
   }
   return bsds
 }
@@ -277,14 +280,14 @@ function getBSDs(mst) {
  */
 function bsd(bsds, i, j) {
   if (i === j) return 0
-  let index = -1;
+  let index = -1
   while (i !== j) {
-    let ei = bsds.edge[i];
-    let ej = bsds.edge[j];
-    if (ei > index) index = ei;
-    if (ej > index) index = ej;
-    i = bsds.parent[i];
-    j = bsds.parent[j];
+    let ei = bsds.edge[i]
+    let ej = bsds.edge[j]
+    if (ei > index) index = ei
+    if (ej > index) index = ej
+    i = bsds.parent[i]
+    j = bsds.parent[j]
   }
   return bsds.edges[index].len
 }
@@ -295,14 +298,14 @@ function bsd(bsds, i, j) {
  * @returns array of adjacency lists, indexed by node
  */
 function getAdjacency(edges) {
-  const ret = [];
+  const ret: any[] = []
   edges.forEach((edge, i) => {
-    const { p1, p2 } = edge;
-    if (!ret[p1]) ret[p1] = [];
-    if (!ret[p2]) ret[p2] = [];
-    ret[p1].push({ edge: i, node: p2 });
-    ret[p2].push({ edge: i, node: p1 });
-  });
+    const { p1, p2 } = edge
+    if (!ret[p1]) ret[p1] = []
+    if (!ret[p2]) ret[p2] = []
+    ret[p1].push({ edge: i, node: p2 })
+    ret[p2].push({ edge: i, node: p1 })
+  })
   return ret
 }
 
@@ -312,17 +315,17 @@ function getAdjacency(edges) {
  * @param {*} bsds bsd structure
  */
 function getBmst(terms, bsds) {
-  const edges = [];
+  const edges: Edge[] = []
   for (let i = 0; i < terms.length; i++) {
     for (let j = i + 1; j < terms.length; j++) {
       edges.push({
         p1: i,
         p2: j,
-        len: bsd(bsds, terms[i], terms[j])
-      });
+        len: bsd(bsds, terms[i], terms[j]),
+      })
     }
   }
-  const theMst = mst(edges);
+  const theMst = mst(edges)
   return theMst
 }
 
@@ -332,21 +335,21 @@ function getBmst(terms, bsds) {
  * @param {*} bsds bsd structure
  */
 function getBmstLength(terms, bsds) {
-  const theMst = getBmst(terms, bsds);
-  let total = 0;
-  theMst.forEach(e => {
-    total += e.len;
-  });
+  const theMst = getBmst(terms, bsds)
+  let total = 0
+  theMst.forEach((e) => {
+    total += e.len
+  })
   return total
 }
 
 /**
  * Compute rectilinear full Steiner trees, or RFSTs, for a given set of terminals.
- * 
+ *
  * @param {*} terminals terminals points to consider
  *   Eg:
  *   [[2, 1], [3, 7], ...]
- * 
+ *
  * @returns an object with the RFSTs
  *   Eg:
  *   {
@@ -366,56 +369,62 @@ function getBmstLength(terms, bsds) {
  */
 function rfst(terminals) {
   // Preprocessing
-  const successors = getSuccessors(terminals);
-  const emptyRects = getEmptyRects(terminals, successors);
-  const ub0 = getUb0(terminals, successors);
-  const mst = getRmst(terminals);
+  const successors = getSuccessors(terminals)
+  const emptyRects = getEmptyRects(terminals, successors)
+  const ub0 = getUb0(terminals, successors)
+  const mst = getRmst(terminals)
   // const mstLen = mst.map(e => e.len).reduce((s, l) => s + l)
-  const bsds = getBSDs(mst);
-  const zt = getZt(terminals, successors, ub0, emptyRects, bsds);
-  const ub1 = getUb1(terminals, successors, zt);
-  
+  const bsds = getBSDs(mst)
+  const zt = getZt(terminals, successors, ub0, emptyRects, bsds)
+  const ub1 = getUb1(terminals, successors, zt)
+
   // Growing some FSTs
   const ctx = {
-    terminals, successors, emptyRects, ub0, bsds, zt, ub1,
+    terminals,
+    successors,
+    emptyRects,
+    ub0,
+    bsds,
+    zt,
+    ub1,
     fsp: [],
-    fsphash: {}
-  };
+    fsphash: {},
+  }
   for (let dir = 0; dir < 2; dir++) {
     for (let i = 0; i < terminals.length; i++) {
       const fts = {
         terms: [i],
         longterms: [i, -1],
-        maxedges: [],
-        shortterm: [],
-        lrindex: [],
-        term_check: [],
-        hash: [],
+        maxedges: [] as any[],
+        shortterm: [] as any[],
+        lrindex: [] as any[],
+        term_check: [] as any[],
+        hash: [] as any[],
         length: 0,
         dir: dir,
         ubLength: 0,
         ubShortleg: [Infinity, Infinity],
-        longindex: 0
-      };
-      fts.maxedges[i] = 0;
-      for (let j = 0; j < terminals.length; j++) {
-        fts.lrindex[j] = 0;
-        fts.term_check[j] = false;
-        fts.hash[j] = null;
+        longindex: 0,
       }
-      growFST(ctx, fts);
+      fts.maxedges[i] = 0
+      for (let j = 0; j < terminals.length; j++) {
+        fts.lrindex[j] = 0
+        fts.term_check[j] = false
+        fts.hash[j] = null
+      }
+      growFST(ctx, fts)
     }
   }
 
   // Add MST edges too
-  mst.forEach(({ p1, p2, len}) => {
+  mst.forEach(({ p1, p2, len }) => {
     testAndSaveFst(ctx, {
       terms: [p1, p2],
       length: len,
       dir: 0,
-      type: 1
-    });
-  });
+      type: 1,
+    })
+  })
 
   return { terminals, fsts: ctx.fsp }
 }
@@ -426,24 +435,24 @@ function rfst(terminals) {
  * @returns an object with arrays for each direction which map indices to successors
  */
 function getSuccessors(terminals) {
-  const { x: xOrdered, y: yOrdered } = getOrderedIndices(terminals);
+  const { x: xOrdered, y: yOrdered } = getOrderedIndices(terminals)
 
-  const west = [];
-  const east = [];
-  const north = [];
-  const south = [];
+  const west: any[] = []
+  const east: any[] = []
+  const north: any[] = []
+  const south: any[] = []
 
   for (let i = 0; i < terminals.length; i++) {
-    west[i] = east[i] = north[i] = south[i] = -1;
+    west[i] = east[i] = north[i] = south[i] = -1
   }
 
   for (let i = 1; i < terminals.length; i++) {
-    west[xOrdered[i]] = xOrdered[i-1];
-    east[xOrdered[i-1]] = xOrdered[i];
-    north[yOrdered[i]] = yOrdered[i-1];
-    south[yOrdered[i-1]] = yOrdered[i];
+    west[xOrdered[i]] = xOrdered[i - 1]
+    east[xOrdered[i - 1]] = xOrdered[i]
+    north[yOrdered[i]] = yOrdered[i - 1]
+    south[yOrdered[i - 1]] = yOrdered[i]
   }
-  
+
   return { west, east, north, south }
 }
 
@@ -453,26 +462,26 @@ function getSuccessors(terminals) {
  * @returns object with arrays of ordered indices for each axis
  */
 function getOrderedIndices(terminals) {
-  const indicesX = Array.from(Array(terminals.length).keys());
-  const indicesY = indicesX.slice();
+  const indicesX = Array.from(Array(terminals.length).keys())
+  const indicesY = indicesX.slice()
   indicesX.sort((a, b) => {
-    const [tax, tay] = terminals[a];
-    const [tbx, tby] = terminals[b];
+    const [tax, tay] = terminals[a]
+    const [tbx, tby] = terminals[b]
     if (tax > tbx) return 1
     if (tax < tbx) return -1
     if (tay > tby) return 1
     if (tay < tby) return -1
     return a - b
-  });
+  })
   indicesY.sort((a, b) => {
-    const [tax, tay] = terminals[a];
-    const [tbx, tby] = terminals[b];
+    const [tax, tay] = terminals[a]
+    const [tbx, tby] = terminals[b]
     if (tay > tby) return 1
     if (tay < tby) return -1
     if (tax > tbx) return 1
     if (tax < tbx) return -1
     return a - b
-  });
+  })
   return { x: indicesX, y: indicesY }
 }
 
@@ -483,28 +492,28 @@ function getOrderedIndices(terminals) {
  * @returns UB0 object
  */
 function getUb0(terminals, successors) {
-  const dirs = ['east', 'south', 'west', 'north'];
-  const ub0 = {};
+  const dirs = ["east", "south", "west", "north"]
+  const ub0 = {}
   dirs.forEach((d, di) => {
-    const succ = successors[d];
-    const arr = ub0[d] = [];
+    const succ = successors[d]
+    const arr: any[] = (ub0[d] = [])
     terminals.forEach((p, i) => {
-      let bound = Infinity;
+      let bound = Infinity
       for (let j = succ[i]; j >= 0; j = succ[j]) {
-        const p2 = terminals[j];
-        const d1 = DSTDIR(di, p, p2);
+        const p2 = terminals[j]
+        const d1 = DSTDIR(di, p, p2)
         if (d1 > bound) break
-        const d2 = DSTDIRP(di, p, p2);
+        const d2 = DSTDIRP(di, p, p2)
         if (d1 > d2) {
-          const d3 = d1 + d2;
+          const d3 = d1 + d2
           if (d3 < bound) {
-            bound = d3;
+            bound = d3
           }
         }
       }
-      arr[i] = bound;
-    });
-  });
+      arr[i] = bound
+    })
+  })
   return ub0
 }
 
@@ -513,41 +522,41 @@ function getUb0(terminals, successors) {
  * @returns zt object
  */
 function getZt(terminals, successors, ub0s, emptyRects, bsds) {
-  const dirs = ['east', 'south', 'west', 'north'];
-  const zt = { };
+  const dirs = ["east", "south", "west", "north"]
+  const zt = {}
 
   dirs.forEach((d, di) => {
-    zt[d] = [];
-    const dirp = dirs[[3, 2, 3, 2][di]];
-    const succ = successors[d];
-    const ub0 = ub0s[d];
-    const ub0p = ub0s[dirp];
+    zt[d] = []
+    const dirp = dirs[[3, 2, 3, 2][di]]
+    const succ = successors[d]
+    const ub0 = ub0s[d]
+    const ub0p = ub0s[dirp]
 
     for (let i = 0; i < terminals.length; i++) {
-      zt[d][i] = [];
-      const p1 = terminals[i];
-      let limit = ub0[i];
+      zt[d][i] = []
+      const p1 = terminals[i]
+      let limit = ub0[i]
       for (let j = succ[i]; j >= 0; j = succ[j]) {
-        const p2 = terminals[j];
-        const d1 = DSTDIR(di, p1, p2);
+        const p2 = terminals[j]
+        const d1 = DSTDIR(di, p1, p2)
         if (d1 === 0) continue
         if (d1 > limit) break
-        const d2 = DSTDIRP(di, p1, p2);
+        const d2 = DSTDIRP(di, p1, p2)
         if (d2 === 0) break
-        const lr = isLeft(di, p1, p2) === [0, 1, 1, 0][di];
+        const lr = isLeft(di, p1, p2) === [0, 1, 1, 0][di]
         if (!lr) continue
         if (d2 > ub0p[j]) continue
 
-        const b = bsd(bsds, i, j);
+        const b = bsd(bsds, i, j)
         if (d1 > b) continue
         if (d2 > b) continue
         if (isEmptyRect(emptyRects, i, j)) {
           // Candidate found
-          zt[d][i].push(j);
+          zt[d][i].push(j)
         }
       }
     }
-  });
+  })
   return zt
 }
 
@@ -559,9 +568,9 @@ function getZt(terminals, successors, ub0s, emptyRects, bsds) {
  * @returns 1 if p2 is strictly to the left, 0 otherwise
  */
 function isLeft(dir, p1, p2) {
-  const isRTL = [0, 1, 1, 0][dir];
-  const axis = [1, 0, 1, 0][dir];
-  const ret = isRTL ? p2[axis] >= p1[axis] : p2[axis] <= p1[axis];
+  const isRTL = [0, 1, 1, 0][dir]
+  const axis = [1, 0, 1, 0][dir]
+  const ret = isRTL ? p2[axis] >= p1[axis] : p2[axis] <= p1[axis]
   return ret ? 1 : 0
 }
 
@@ -570,66 +579,66 @@ function isLeft(dir, p1, p2) {
  * @returns UB1 object
  */
 function getUb1(terminals, successors, zt) {
-  const dirs = ['east', 'south', 'west', 'north'];
-  const ub1s = {};
+  const dirs = ["east", "south", "west", "north"]
+  const ub1s: any = {}
   dirs.forEach((d, di) => {
-    const succ = successors[d];
-    const ub1 = ub1s[d] = [];
-    const dzt = zt[d];
+    const succ = successors[d]
+    const ub1: any = (ub1s[d] = [])
+    const dzt = zt[d]
     terminals.forEach((p1, i) => {
-      const shortLegCandidates = dzt[i];
+      const shortLegCandidates = dzt[i]
       if (!shortLegCandidates.length) {
-        ub1[i] = 0;
+        ub1[i] = 0
         return
       }
-      const last = shortLegCandidates[shortLegCandidates.length - 1];
-      let bound = Infinity;
-      const p3 = terminals[last];
-      const steiner = SPOINT(di, p1, p3);
-      const d3 = DSTDIRP(di, p1, p3);
+      const last = shortLegCandidates[shortLegCandidates.length - 1]
+      let bound = Infinity
+      const p3 = terminals[last]
+      const steiner = SPOINT(di, p1, p3)
+      const d3 = DSTDIRP(di, p1, p3)
       for (let j = succ[last]; j >= 0; j = succ[j]) {
-        const p2 = terminals[j];
-        const d1 = DSTDIR(di, steiner, p2);
+        const p2 = terminals[j]
+        const d1 = DSTDIR(di, steiner, p2)
         if (d1 > bound) break
-        const d2 = DSTDIRP(di, steiner, p2);
-        const lr = isLeft(di, p1, p2) === [0, 1, 1, 0][di];
+        const d2 = DSTDIRP(di, steiner, p2)
+        const lr = isLeft(di, p1, p2) === [0, 1, 1, 0][di]
         if (lr && d3 > d2) {
-          bound = d1;
+          bound = d1
           break
         }
         if (d1 > d2) {
-          const d4 = d1 + d2;
+          const d4 = d1 + d2
           if (d4 < bound) {
-            bound = d4;
+            bound = d4
           }
         }
       }
-      ub1[i] = DSTDIR(di, p1, p3) + bound;
-    });
-  });
+      ub1[i] = DSTDIR(di, p1, p3) + bound
+    })
+  })
   return ub1s
 }
 
 function growFST(ctx, fst) {
-  const r = fst.terms[0];
-  const l = fst.terms[fst.terms.length - 1];
-  const lastlr = fst.lrindex[l];
-  const dirName = ['east', 'south', 'west', 'north'][fst.dir];
-  const succ = ctx.successors[dirName];
+  const r = fst.terms[0]
+  const l = fst.terms[fst.terms.length - 1]
+  const lastlr = fst.lrindex[l]
+  const dirName = ["east", "south", "west", "north"][fst.dir]
+  const succ = ctx.successors[dirName]
 
-  const root = ctx.terminals[r];
-  const last = ctx.terminals[l];
-  let maxBackbone = Infinity;
+  const root = ctx.terminals[r]
+  const last = ctx.terminals[l]
+  let maxBackbone = Infinity
 
-  const lastDstDirp = DSTDIRP(fst.dir, root, last);
+  const lastDstDirp = DSTDIRP(fst.dir, root, last)
 
-  let needsRestore = false;
+  let needsRestore = false
 
   for (;;) {
-    let i = fst.longterms[++fst.longindex];
-    let lr;
-    let p;
-    let dstdirp;
+    let i = fst.longterms[++fst.longindex]
+    let lr
+    let p
+    let dstdirp
 
     if (i < -1) {
       // No more candidates, and no more can be found
@@ -639,71 +648,73 @@ function growFST(ctx, fst) {
     if (i === -1) {
       // Dynamically add next candidate to longterms
       for (i = succ[fst.longterms[fst.longindex - 1]]; i >= 0; i = succ[i]) {
-        p = ctx.terminals[i];
-        dstdirp = DSTDIRP(fst.dir, root, p);
+        p = ctx.terminals[i]
+        dstdirp = DSTDIRP(fst.dir, root, p)
         if (dstdirp === 0) {
-          lr = 2;
-          fst.lrindex[i] = 2;
-          fst.shortterm[i] = 0;
-          fst.longterms[fst.longindex] = i;
-          fst.longterms[fst.longindex + 1] = -2;
+          lr = 2
+          fst.lrindex[i] = 2
+          fst.shortterm[i] = 0
+          fst.longterms[fst.longindex] = i
+          fst.longterms[fst.longindex + 1] = -2
           break
         }
 
-        lr = isLeft(fst.dir, root, p);
-        const dirp = (fst.dir + (lr ? 1 : -1)) & 0x03;
-        const dirpName = ['east', 'south', 'west', 'north'][dirp];
+        lr = isLeft(fst.dir, root, p)
+        const dirp = (fst.dir + (lr ? 1 : -1)) & 0x03
+        const dirpName = ["east", "south", "west", "north"][dirp]
 
         // Find short leg candidate (if it exists)
-        const candidates = ctx.zt[dirpName][i].slice().reverse();
-        const j = candidates.find(k => isLeft(fst.dir, root, ctx.terminals[k]) === lr);
-        fst.shortterm[i] = j !== undefined ? j : -1;
+        const candidates = ctx.zt[dirpName][i].slice().reverse()
+        const j = candidates.find(
+          (k) => isLeft(fst.dir, root, ctx.terminals[k]) === lr
+        )
+        fst.shortterm[i] = j !== undefined ? j : -1
 
         // Check upper bounds
-        let ub1 = 0;
+        let ub1 = 0
         if (j >= 0) {
-          ub1 = ctx.ub1[dirpName][i];
+          ub1 = ctx.ub1[dirpName][i]
         }
-        let d1 = ctx.ub0[dirpName][i];
+        let d1 = ctx.ub0[dirpName][i]
         if (d1 < ub1) {
-          d1 = ub1;
+          d1 = ub1
         }
         if (dstdirp > d1) continue
 
-        fst.lrindex[i] = lr;
-        fst.longterms[fst.longindex] = i;
-        fst.longterms[fst.longindex + 1] = -1;
+        fst.lrindex[i] = lr
+        fst.longterms[fst.longindex] = i
+        fst.longterms[fst.longindex + 1] = -1
         break
       }
       if (i < 0) {
         // No further candidates
-        fst.longterms[fst.longindex] = -2;
+        fst.longterms[fst.longindex] = -2
         break
       }
     } else {
       // next long leg candidate available in longterms
-      p = ctx.terminals[i];
-      lr = fst.lrindex[i];
-      dstdirp = DSTDIRP(fst.dir, root, p);
+      p = ctx.terminals[i]
+      lr = fst.lrindex[i]
+      dstdirp = DSTDIRP(fst.dir, root, p)
     }
 
-    const dstdir = DSTDIR(fst.dir, last, p);
+    const dstdir = DSTDIR(fst.dir, last, p)
 
     // Check if consecutive terminals share Steiner point
     if (fst.terms.length >= 3 && dstdir === 0) continue
 
     // Upd. max backbone length using empty diamond property
     if (dstdirp < dstdir) {
-      const d1 = dstdir + dstdirp;
+      const d1 = dstdir + dstdirp
       if (d1 < maxBackbone) {
-        maxBackbone = d1;
+        maxBackbone = d1
       }
     }
 
     // Upd. max backbone length using empty rect property
     if (fst.terms.length >= 2 && lr === lastlr && dstdirp < lastDstDirp) {
       if (dstdir < maxBackbone) {
-        maxBackbone = dstdir;
+        maxBackbone = dstdir
       }
     }
 
@@ -713,13 +724,13 @@ function growFST(ctx, fst) {
     if (lr === 2) {
       // Terminal is on the backbone. Save as type 1 and break.
       if (fst.terms.length >= 2) {
-        fst.terms.push(i);
+        fst.terms.push(i)
         testAndSaveFst(ctx, {
           ...fst,
           length: fst.length + dstdir + dstdirp,
-          type: 1
-        });
-        fst.terms.pop();
+          type: 1,
+        })
+        fst.terms.pop()
       }
       break
     }
@@ -731,95 +742,95 @@ function growFST(ctx, fst) {
     if (!isEmptyRect(ctx.emptyRects, l, i)) continue
 
     // Check if new backbone segment is longer than any BSD
-    let passBsd = true;
-    let minBsd = Infinity;
+    let passBsd = true
+    let minBsd = Infinity
     for (let j = 0; j < fst.terms.length; j++) {
-      const k = fst.terms[j];
-      let d1 = fst.maxedges[k];
+      const k = fst.terms[j]
+      let d1 = fst.maxedges[k]
       if (dstdir > d1) {
-        d1 = dstdir;
-        fst.maxedges[k] = d1;
-        needsRestore = true;
+        d1 = dstdir
+        fst.maxedges[k] = d1
+        needsRestore = true
       }
-      const b = bsd(ctx.bsds, i, k);
+      const b = bsd(ctx.bsds, i, k)
       if (d1 > b) {
-        passBsd = false;
+        passBsd = false
         break
       }
       if (b < minBsd) {
-        minBsd = b;
+        minBsd = b
       }
     }
     if (!passBsd) continue
-    let newUbLength = fst.ubLength + minBsd;
+    let newUbLength = fst.ubLength + minBsd
 
-    const dirp = (fst.dir + (lr + lr - 1)) & 3;
-    const dirpName = ['east', 'south', 'west', 'north'][dirp];
+    const dirp = (fst.dir + (lr + lr - 1)) & 3
+    const dirpName = ["east", "south", "west", "north"][dirp]
 
     // Try to make a type 2 FST
-    let tryType1 = false;
-    let tryGrowing = false;
+    let tryType1 = false
+    let tryGrowing = false
 
-    let j = fst.shortterm[i];
-    if (j < 0) tryType1 = true;
+    let j = fst.shortterm[i]
+    if (j < 0) tryType1 = true
 
     // Is backbone rect empty?
-    if (!isEmptyRect(ctx.emptyRects, r, j)) tryType1 = true;
+    if (!isEmptyRect(ctx.emptyRects, r, j)) tryType1 = true
 
     // Check UB1
-    if (dstdirp > ctx.ub1[dirpName][i]) tryType1 = true;
+    if (dstdirp > ctx.ub1[dirpName][i]) tryType1 = true
 
     // Check BSD for each terminal in current tree
-    let q;
+    let q
     if (!tryType1) {
-      q = ctx.terminals[j];
+      q = ctx.terminals[j]
       for (let j2 = 0; j2 < fst.terms.length; j2++) {
-        const k = fst.terms[j2];
-        let d1 = fst.maxedges[k];
-        let d2 = DSTDIRP(fst.dir, root, q);
-        let d3 = DSTDIRP(fst.dir, p, q);
-        if (d2 > d1) d1 = d2;
-        if (d1 > d3) d3 = d1;
-        if (d3 > bsd(ctx.bsds, i, k)) tryType1 = true;
-        d3 = DSTDIR(fst.dir, p, q);
-        if (d1 > d3) d3 = d1;
-        if (d3 > bsd(ctx.bsds, j, k)) tryType1 = true;
+        const k = fst.terms[j2]
+        let d1 = fst.maxedges[k]
+        let d2 = DSTDIRP(fst.dir, root, q)
+        let d3 = DSTDIRP(fst.dir, p, q)
+        if (d2 > d1) d1 = d2
+        if (d1 > d3) d3 = d1
+        if (d3 > bsd(ctx.bsds, i, k)) tryType1 = true
+        d3 = DSTDIR(fst.dir, p, q)
+        if (d1 > d3) d3 = d1
+        if (d3 > bsd(ctx.bsds, j, k)) tryType1 = true
       }
     }
 
     // Check short leg upper bound
     if (!tryType1) {
-      if (DSTDIRP(fst.dir, root, q) > fst.ubShortleg[lr ? 1 : 0]) tryGrowing = true;
+      if (DSTDIRP(fst.dir, root, q) > fst.ubShortleg[lr ? 1 : 0])
+        tryGrowing = true
 
       // Perform FST tests and save as type 2
       if (!tryGrowing) {
-        fst.terms.push(i, j);
+        fst.terms.push(i, j)
         testAndSaveFst(ctx, {
           ...fst,
-          length: fst.length + DSTDIR(fst.dir, last, q)
-            + DSTDIRP(fst.dir, root, p),
-          type: 2
-        });
-        fst.terms.pop();
-        fst.terms.pop();
+          length:
+            fst.length + DSTDIR(fst.dir, last, q) + DSTDIRP(fst.dir, root, p),
+          type: 2,
+        })
+        fst.terms.pop()
+        fst.terms.pop()
       }
     }
 
     // Try to make a type 1 FST
     // try_type1:
     if (!tryGrowing) {
-
       // Check UB0
       if (dstdirp > ctx.ub0[dirpName][i]) continue
 
       // Check BSD to each terminal in prev tree
-      let passBsd = true;
+      let passBsd = true
       for (let j2 = 0; j2 < fst.terms.length; j2++) {
-        const k = fst.terms[j2];
-        let d1 = fst.maxedges[k];
-        if (dstdirp > d1) d1 = dstdirp;
+        const k = fst.terms[j2]
+        let d1 = fst.maxedges[k]
+        if (dstdirp > d1) d1 = dstdirp
         if (d1 > bsd(ctx.bsds, k, i)) {
-          passBsd = false;
+          passBsd = false
           break
         }
       }
@@ -829,26 +840,26 @@ function growFST(ctx, fst) {
       if (fst.length + dstdir > newUbLength) continue
 
       // Check if BSD upper bound is shorter than partial tree
-      if (fst.length + dstdir + dstdirp > newUbLength) tryGrowing = true;
+      if (fst.length + dstdir + dstdirp > newUbLength) tryGrowing = true
 
       // Do not make 2-terminal FSTs
-      if (fst.terms.length <= 1) tryGrowing = true;
+      if (fst.terms.length <= 1) tryGrowing = true
 
       // Is backbone rectangle empty?
-      if (!isEmptyRect(ctx.emptyRects, r, i)) tryGrowing = true;
+      if (!isEmptyRect(ctx.emptyRects, r, i)) tryGrowing = true
 
       // Check short leg upper bound
-      if (dstdirp > fst.ubShortleg[lr]) tryGrowing = true;
+      if (dstdirp > fst.ubShortleg[lr]) tryGrowing = true
 
       // Perform FST tests and save type 1 tree
       if (!tryGrowing) {
-        fst.terms.push(i);
+        fst.terms.push(i)
         newUbLength = testAndSaveFst(ctx, {
           ...fst,
           length: fst.length + dstdir + dstdirp,
-          type: 1
-        });
-        fst.terms.pop();
+          type: 1,
+        })
+        fst.terms.pop()
       }
     }
 
@@ -859,72 +870,72 @@ function growFST(ctx, fst) {
     if (fst.terms.length >= ctx.terminals.length) continue // maxFstSize??
 
     // Upper bound (A)
-    let d1 = fst.ubShortleg[lr];
-    if (dstdirp < d1) d1 = dstdirp;
-    const newUbShortleg = [];
-    newUbShortleg[lr] = d1;
-    d1 = fst.ubShortleg[1-lr];
+    let d1 = fst.ubShortleg[lr]
+    if (dstdirp < d1) d1 = dstdirp
+    const newUbShortleg: any[] = []
+    newUbShortleg[lr] = d1
+    d1 = fst.ubShortleg[1 - lr]
     if (fst.terms.length >= 2) {
       // Upper bound (B)
-      let d2 = ctx.ub0[dirpName][i];
-      if (minBsd < d2) d2 = minBsd;
-      d2 -= dstdirp;
-      if (d2 < d1) d1 = d2;
+      let d2 = ctx.ub0[dirpName][i]
+      if (minBsd < d2) d2 = minBsd
+      d2 -= dstdirp
+      if (d2 < d1) d1 = d2
 
       // Upper bound (C)
-      if (dstdir < d1) d1 = dstdir;
+      if (dstdir < d1) d1 = dstdir
 
       if (fst.terms.length >= 3) {
         // Upper bound (D)
-        let lp = fst.terms[fst.terms.length - 2];
-        d2 = DSTDIRP(fst.dir, root, ctx.terminals[lp]);
-        if (dstdirp < d2) d2 = dstdirp;
-        d2 = DSTDIR(fst.dir, ctx.terminals[lp], p) - d2;
-        if (d2 < d1) d1 = d2;
+        let lp = fst.terms[fst.terms.length - 2]
+        d2 = DSTDIRP(fst.dir, root, ctx.terminals[lp])
+        if (dstdirp < d2) d2 = dstdirp
+        d2 = DSTDIR(fst.dir, ctx.terminals[lp], p) - d2
+        if (d2 < d1) d1 = d2
       }
     }
-    newUbShortleg[1 - lr] = d1;
+    newUbShortleg[1 - lr] = d1
 
-    fst.terms.push(i);
-    fst.maxedges[i] = dstdirp;
+    fst.terms.push(i)
+    fst.maxedges[i] = dstdirp
     growFST(ctx, {
       ...fst,
       length: fst.length + dstdir + dstdirp,
       ubLength: newUbLength,
-      ubShortleg: newUbShortleg
-    });
-    fst.terms.pop();
+      ubShortleg: newUbShortleg,
+    })
+    fst.terms.pop()
   }
 
   if (needsRestore) {
     // Restore caller's maxedges by recomputing them from scratch...
-    let longLegMax = 0;
+    let longLegMax = 0
     for (let i = fst.terms.length - 1; i > 0; i--) {
-      const k = fst.terms[i];
-      const p = ctx.terminals[k];
-      let d1 = DSTDIRP(fst.dir, root, p);
-      if (longLegMax > d1) d1 = longLegMax;
-      fst.maxedges[k] = d1;
-      const j = fst.terms[i - 1];
-      const q = ctx.terminals[j];
-      d1 = DSTDIR(fst.dir, q, p);
-      if (d1 > longLegMax) longLegMax = d1;
+      const k = fst.terms[i]
+      const p = ctx.terminals[k]
+      let d1 = DSTDIRP(fst.dir, root, p)
+      if (longLegMax > d1) d1 = longLegMax
+      fst.maxedges[k] = d1
+      const j = fst.terms[i - 1]
+      const q = ctx.terminals[j]
+      d1 = DSTDIR(fst.dir, q, p)
+      if (d1 > longLegMax) longLegMax = d1
     }
-    fst.maxedges[r] = longLegMax;
+    fst.maxedges[r] = longLegMax
   }
 }
 
 function testAndSaveFst(ctx, fst) {
-  const size = fst.terms.length;
-  const dir = fst.dir;
+  const size = fst.terms.length
+  const dir = fst.dir
 
-  let type = fst.type;
+  let type = fst.type
 
   // Is this FST too large?
-  if (size >= 2**31 - 1) return fst.length // Doesn't really make sense here
+  if (size >= 2 ** 31 - 1) return fst.length // Doesn't really make sense here
 
   if (size > 2) {
-    const b = getBmstLength(fst.terms, ctx.bsds);
+    const b = getBmstLength(fst.terms, ctx.bsds)
     if (fst.length >= b) return b
   }
 
@@ -937,223 +948,234 @@ function testAndSaveFst(ctx, fst) {
   if (size > 4) {
     // No 2 terms on the long leg should share a steiner point
     for (let i = 1; i < size; i++) {
-      const p = ctx.terminals[fst.terms[i]];
-      const q = ctx.terminals[fst.terms[i-1]];
-      const d1 = DSTDIR(dir, p, q);
+      const p = ctx.terminals[fst.terms[i]]
+      const q = ctx.terminals[fst.terms[i - 1]]
+      const d1 = DSTDIR(dir, p, q)
       if (d1 === 0) return fst.length
     }
   } else if (size === 4) {
-    const p1 = ctx.terminals[fst.terms[0]];
-    const p2 = ctx.terminals[fst.terms[1]];
+    const p1 = ctx.terminals[fst.terms[0]]
+    const p2 = ctx.terminals[fst.terms[1]]
     if (DSTDIR(dir, p1, p2) === 0) return fst.length
-    const p3 = ctx.terminals[fst.terms[2]];
-    const p4 = ctx.terminals[fst.terms[3]];
+    const p3 = ctx.terminals[fst.terms[2]]
+    const p4 = ctx.terminals[fst.terms[3]]
     if (DSTDIR(dir, p3, p4) === 0) return fst.length
 
     if (DSTDIR(dir, p2, p3) === 0) {
       if (DSTDIRP(dir, p1, p4) !== 0) return fst.length
-      type = 3; // Cross
+      type = 3 // Cross
     }
   } else if (size === 3) {
     // Make sure that 3-terminal FST is not degenerate
-    const p1 = ctx.terminals[fst.terms[0]];
-    const p2 = ctx.terminals[fst.terms[1]];
-    const p3 = ctx.terminals[fst.terms[2]];
-    const z12 = (DSTDIR(dir, p1, p2) === 0 ? 1 : 0) + (DSTDIRP(dir, p1, p2) === 0 ? 1 : 0);
-    const z13 = (DSTDIR(dir, p1, p3) === 0 ? 1 : 0) + (DSTDIRP(dir, p1, p3) === 0 ? 1 : 0);
-    const z23 = (DSTDIR(dir, p2, p3) === 0 ? 1 : 0) + (DSTDIRP(dir, p2, p3) === 0 ? 1 : 0);
+    const p1 = ctx.terminals[fst.terms[0]]
+    const p2 = ctx.terminals[fst.terms[1]]
+    const p3 = ctx.terminals[fst.terms[2]]
+    const z12 =
+      (DSTDIR(dir, p1, p2) === 0 ? 1 : 0) + (DSTDIRP(dir, p1, p2) === 0 ? 1 : 0)
+    const z13 =
+      (DSTDIR(dir, p1, p3) === 0 ? 1 : 0) + (DSTDIRP(dir, p1, p3) === 0 ? 1 : 0)
+    const z23 =
+      (DSTDIR(dir, p2, p3) === 0 ? 1 : 0) + (DSTDIRP(dir, p2, p3) === 0 ? 1 : 0)
     if (z12 + z13 > 1) return fst.length
     if (z12 + z23 > 1) return fst.length
     if (z13 + z23 > 1) return fst.length
   }
 
   // Check empty diamond property for transformed FST
-  let i = 0;
-  let last = size - 1;
+  let i = 0
+  let last = size - 1
   if (type === 2) {
-    last = size - 2;
-    if ((size & 1) === 0) i = 1; // type 2, even
-  } else if ((size & 1) !== 0) i = 1; // type 1, odd
-  const p1 = ctx.terminals[fst.terms[0]];
-  const p2 = ctx.terminals[fst.terms[size - 1]];
+    last = size - 2
+    if ((size & 1) === 0) i = 1 // type 2, even
+  } else if ((size & 1) !== 0) i = 1 // type 1, odd
+  const p1 = ctx.terminals[fst.terms[0]]
+  const p2 = ctx.terminals[fst.terms[size - 1]]
   while (i < last) {
     // Check skew diamond
-    let s1 = SPOINT(dir, p1, ctx.terminals[fst.terms[i]]);
-    let s2 = SPOINT(dir, p2, ctx.terminals[fst.terms[i+1]]);
+    let s1 = SPOINT(dir, p1, ctx.terminals[fst.terms[i]])
+    let s2 = SPOINT(dir, p2, ctx.terminals[fst.terms[i + 1]])
     if (!diamondEmpty(ctx, s1, s2, fst.terms[i], dir)) return fst.length
-    i++;
+    i++
     if (i >= last) break
 
     // Check for flat segment
-    s1 = SPOINT(dir, p2, ctx.terminals[fst.terms[i]]);
-    s2 = SPOINT(dir, p2, ctx.terminals[fst.terms[i+1]]);
+    s1 = SPOINT(dir, p2, ctx.terminals[fst.terms[i]])
+    s2 = SPOINT(dir, p2, ctx.terminals[fst.terms[i + 1]])
     if (!diamondEmpty(ctx, s1, s2, fst.terms[i], dir)) return fst.length
-    i++;
+    i++
   }
 
   // Test that corner flipped FST does not split into 2+ FST
-  const d1 = DSTDIRP(ctx.terminals[fst.terms[size - 1]], ctx.terminals[fst.terms[0]], dir);
-  i = size - (fst.type === 1 ? 3 : 4);
+  const d1 = DSTDIRP(
+    ctx.terminals[fst.terms[size - 1]],
+    ctx.terminals[fst.terms[0]],
+    dir
+  )
+  i = size - (fst.type === 1 ? 3 : 4)
   while (i > 0) {
-    if (DSTDIRP(ctx.terminals[fst.terms[i]], ctx.terminals[fst.terms[0]], dir) <= d1) {
+    if (
+      DSTDIRP(ctx.terminals[fst.terms[i]], ctx.terminals[fst.terms[0]], dir) <=
+      d1
+    ) {
       return fst.length
     }
-    i -= 2;
+    i -= 2
   }
 
   // Check for duplicates
-  const hash = fst.terms.slice().sort().join(',');
-  const dupe = ctx.fsphash[hash];
+  const hash = fst.terms.slice().sort().join(",")
+  const dupe = ctx.fsphash[hash]
   if (dupe) {
     if (dupe.length <= fst.length) {
       return dupe.length
     }
     // The new one is shorter! Delete the old one
-    const idx = ctx.fsp.indexOf(dupe);
+    const idx = ctx.fsp.indexOf(dupe)
     if (idx >= 0) {
-      ctx.fsp.splice(idx, 1);
+      ctx.fsp.splice(idx, 1)
     }
   }
 
   // Build FST graph in edge list form
-  fst.pterms = fst.terms.map(t => ctx.terminals[t]);
-  buildRFSTGraph(ctx, fst);
+  fst.pterms = fst.terms.map((t) => ctx.terminals[t])
+  buildRFSTGraph(ctx, fst)
   const info = {
-    terminalIndices: fst.terms.map(t => t + 1), // One-indexed, and must make a copy
+    terminalIndices: fst.terms.map((t) => t + 1), // One-indexed, and must make a copy
     steinerPoints: fst.steins,
-    edges: fst.edges.map(e => [
+    edges: fst.edges.map((e) => [
       e.p1 < fst.terms.length ? e.p1 + 1 : (e.p1 - fst.terms.length + 1) * -1,
-      e.p2 < fst.terms.length ? e.p2 + 1 : (e.p2 - fst.terms.length + 1) * -1
+      e.p2 < fst.terms.length ? e.p2 + 1 : (e.p2 - fst.terms.length + 1) * -1,
     ]),
-    length: fst.length
-  };
-  ctx.fsp.push(info);
-  ctx.fsphash[hash] = info;
+    length: fst.length,
+  }
+  ctx.fsp.push(info)
+  ctx.fsphash[hash] = info
 
   return fst.length
 }
 
 function buildRFSTGraph(ctx, fst) {
-  const p1 = fst.pterms[0];
-  const p2 = fst.pterms[1];
-  fst.steins = [];
-  fst.edges = [];
-  const size = fst.terms.length;
+  const p1 = fst.pterms[0]
+  const p2 = fst.pterms[1]
+  fst.steins = []
+  fst.edges = []
+  const size = fst.terms.length
 
   if (size <= 2) {
     if (p1[0] !== p2[0] && p1[1] !== p2[1]) {
-      const p3 = p1[0] < p2[0] ? SPOINT(1, p1, p2) : SPOINT(1, p2, p1);
-      fst.steins.push(p3);
-      fst.edges.push({ p1: 0, p2: 2, len: RDIST(p1, p3) });
-      fst.edges.push({ p1: 1, p2: 2, len: RDIST(p2, p3) });
+      const p3 = p1[0] < p2[0] ? SPOINT(1, p1, p2) : SPOINT(1, p2, p1)
+      fst.steins.push(p3)
+      fst.edges.push({ p1: 0, p2: 2, len: RDIST(p1, p3) })
+      fst.edges.push({ p1: 1, p2: 2, len: RDIST(p2, p3) })
       return
     } else {
-      fst.edges.push({ p1: 0, p2: 1, len: RDIST(p1, p2) });
+      fst.edges.push({ p1: 0, p2: 1, len: RDIST(p1, p2) })
       return
     }
   }
 
-  if (fst.type === 3) { // Cross
-    const p3 = SPOINT(fst.dir, p1, p2);
-    fst.steins.push(p3);
+  if (fst.type === 3) {
+    // Cross
+    const p3 = SPOINT(fst.dir, p1, p2)
+    fst.steins.push(p3)
     for (let i = 0; i < 4; i++) {
-      fst.edges.push({ p1: i, p2: 4, len: RDIST(fst.pterms[i], fst.steins[0]) });
+      fst.edges.push({ p1: i, p2: 4, len: RDIST(fst.pterms[i], fst.steins[0]) })
     }
     return
   }
 
   // Decide whether to build a normal or corner-flipped topology
-  let k = size - 1;
-  if (fst.type === 2) k--;
-  k = fst.terms[k];
+  let k = size - 1
+  if (fst.type === 2) k--
+  k = fst.terms[k]
   if (fst.dir === 1 && fst.lrindex[k] === 1) {
     // Build normal (unflipped) topology
-    let p1 = fst.type === 1 ? fst.pterms[0] : fst.pterms[size - 1];
-    let p2 = fst.pterms[size - 2];
+    let p1 = fst.type === 1 ? fst.pterms[0] : fst.pterms[size - 1]
+    let p2 = fst.pterms[size - 2]
     for (let i = size - 3; i >= 0; i--) {
-      fst.steins[i] = SPOINT(fst.dir, p1, p2);
-      p1 = fst.pterms[0];
-      p2 = fst.pterms[i];
+      fst.steins[i] = SPOINT(fst.dir, p1, p2)
+      p1 = fst.pterms[0]
+      p2 = fst.pterms[i]
     }
   } else {
     // Build corner-flipped topology
     if (fst.type === 1) {
-      k = (size & 1) === 0 ? size - 1 : 0;
+      k = (size & 1) === 0 ? size - 1 : 0
     } else {
-      k = (size & 1) === 0 ? 0 : size - 1;
+      k = (size & 1) === 0 ? 0 : size - 1
     }
-    let p1 = fst.pterms[k];
-    let p2 = fst.pterms[1];
+    let p1 = fst.pterms[k]
+    let p2 = fst.pterms[1]
     for (let i = 0; i < size - 2; i++) {
-      fst.steins[i] = SPOINT(fst.dir, p1, p2);
-      p1 = fst.pterms[size - 1];
-      p2 = fst.pterms[i + 2];
+      fst.steins[i] = SPOINT(fst.dir, p1, p2)
+      p1 = fst.pterms[size - 1]
+      p2 = fst.pterms[i + 2]
     }
   }
 
   // Now that Steiner points are in their places, build edges
-  let j = 0;
+  let j = 0
   for (let i = 0; i < size - 2; i++) {
-    const nj = size + i;
-    fst.edges.push({ p1: j, p2: nj });
-    fst.edges.push({ p1: nj, p2: i + 1 });
-    j = nj;
+    const nj = size + i
+    fst.edges.push({ p1: j, p2: nj })
+    fst.edges.push({ p1: nj, p2: i + 1 })
+    j = nj
   }
-  fst.edges.push({ p1: j, p2: size - 1});
+  fst.edges.push({ p1: j, p2: size - 1 })
 
-  const nedges = (size <= 2 ? 1 : fst.type === 3 ? 4 : 2 * size - 3) + 1;
-  let includeCorner = true;
+  const nedges = (size <= 2 ? 1 : fst.type === 3 ? 4 : 2 * size - 3) + 1
+  let includeCorner = true
   for (let i = 0; i < nedges - 1; i++) {
-    const { p1: j, p2: k } = fst.edges[i];
-    const p1 = j < size ? fst.pterms[j] : fst.steins[j - size];
-    const p2 = k < size ? fst.pterms[k] : fst.steins[k - size];
+    const { p1: j, p2: k } = fst.edges[i]
+    const p1 = j < size ? fst.pterms[j] : fst.steins[j - size]
+    const p2 = k < size ? fst.pterms[k] : fst.steins[k - size]
     if (includeCorner && p1[0] !== p2[0] && p1[1] !== p2[1]) {
       // Can only happen once
-      includeCorner = false;
-      const p3 = p1[0] < p2[0] ? SPOINT(1, p1, p2) : SPOINT(1, p2, p1);
-      fst.steins.push(p3);
+      includeCorner = false
+      const p3 = p1[0] < p2[0] ? SPOINT(1, p1, p2) : SPOINT(1, p2, p1)
+      fst.steins.push(p3)
 
       // Introduce the corner point by replacing one edge by two
       // (one at the end)
       fst.edges[i] = {
         p1: j,
         p2: size + fst.steins.length - 1,
-        len: RDIST(p1, p3)
-      };
+        len: RDIST(p1, p3),
+      }
       fst.edges.push({
         p1: k,
         p2: size + fst.steins.length - 1,
-        len: RDIST(p2, p3)
-      });
+        len: RDIST(p2, p3),
+      })
     } else {
-      fst.edges[i].len = RDIST(p1, p2);
+      fst.edges[i].len = RDIST(p1, p2)
     }
   }
 }
 
 function diamondEmpty(ctx, p, q, i, dir) {
-  const dirName = ['east', 'south', 'west', 'north'][dir];
-  const oppositeDirName = ['east', 'south', 'west', 'north'][dir + 2];
-  
-  let succ = ctx.successors[dirName];
-  const d = RDIST(p, q);
+  const dirName = ["east", "south", "west", "north"][dir]
+  const oppositeDirName = ["east", "south", "west", "north"][dir + 2]
+
+  let succ = ctx.successors[dirName]
+  const d = RDIST(p, q)
 
   for (let j = succ[i]; j >= 0; j = succ[j]) {
-    const r = ctx.terminals[j];
-    const dstdir = DSTDIR(dir, r, q);
+    const r = ctx.terminals[j]
+    const dstdir = DSTDIR(dir, r, q)
     if (dstdir > d) break
-    const dstdirp = DSTDIRP(dir, r, q);
+    const dstdirp = DSTDIRP(dir, r, q)
     if (RDIST(r, p) < d && dstdir + dstdirp < d) {
       return false
     }
   }
 
-  succ = ctx.successors[oppositeDirName];
+  succ = ctx.successors[oppositeDirName]
   for (let j = succ[i]; j >= 0; j = succ[j]) {
-    const r = ctx.terminals[j];
-    const dstdir = DSTDIR(dir, r, p);
+    const r = ctx.terminals[j]
+    const dstdir = DSTDIR(dir, r, p)
     if (dstdir > d) break
-    const dstdirp = DSTDIRP(dir, r, p);
+    const dstdirp = DSTDIRP(dir, r, p)
     if (RDIST(r, q) < d && dstdir + dstdirp < d) {
       return false
     }
@@ -1166,66 +1188,62 @@ function diamondEmpty(ctx, p, q, i, dir) {
  * Intermediate module to use glpk.js without async issues
  */
 
- const constants = {
+const constants = {
   /* direction: */
-  'GLP_MIN': 1,  /* minimization */
-  'GLP_MAX': 2,  /* maximization */
+  GLP_MIN: 1 /* minimization */,
+  GLP_MAX: 2 /* maximization */,
 
   /* kind of structural variable: */
-  'GLP_CV': 1,  /* continuous variable */
-  'GLP_IV': 2,  /* integer variable */
-  'GLP_BV': 3,  /* binary variable */
+  GLP_CV: 1 /* continuous variable */,
+  GLP_IV: 2 /* integer variable */,
+  GLP_BV: 3 /* binary variable */,
 
   /* type of auxiliary/structural variable: */
-  'GLP_FR': 1,  /* free (unbounded) variable */
-  'GLP_LO': 2,  /* variable with lower bound */
-  'GLP_UP': 3,  /* variable with upper bound */
-  'GLP_DB': 4,  /* double-bounded variable */
-  'GLP_FX': 5,  /* fixed variable */
+  GLP_FR: 1 /* free (unbounded) variable */,
+  GLP_LO: 2 /* variable with lower bound */,
+  GLP_UP: 3 /* variable with upper bound */,
+  GLP_DB: 4 /* double-bounded variable */,
+  GLP_FX: 5 /* fixed variable */,
 
   /* message level: */
-  'GLP_MSG_OFF': 0,  /* no output */
-  'GLP_MSG_ERR': 1,  /* warning and error messages only */
-  'GLP_MSG_ON': 2,  /* normal output */
-  'GLP_MSG_ALL': 3,  /* full output */
-  'GLP_MSG_DBG': 4,  /* debug output */
+  GLP_MSG_OFF: 0 /* no output */,
+  GLP_MSG_ERR: 1 /* warning and error messages only */,
+  GLP_MSG_ON: 2 /* normal output */,
+  GLP_MSG_ALL: 3 /* full output */,
+  GLP_MSG_DBG: 4 /* debug output */,
 
   /* solution status: */
-  'GLP_UNDEF': 1,  /* solution is undefined */
-  'GLP_FEAS': 2,  /* solution is feasible */
-  'GLP_INFEAS': 3,  /* solution is infeasible */
-  'GLP_NOFEAS': 4,  /* no feasible solution exists */
-  'GLP_OPT': 5,  /* solution is optimal */
-  'GLP_UNBND': 6,  /* solution is unbounded */
- };
+  GLP_UNDEF: 1 /* solution is undefined */,
+  GLP_FEAS: 2 /* solution is feasible */,
+  GLP_INFEAS: 3 /* solution is infeasible */,
+  GLP_NOFEAS: 4 /* no feasible solution exists */,
+  GLP_OPT: 5 /* solution is optimal */,
+  GLP_UNBND: 6 /* solution is unbounded */,
+}
 
- const solve = async (lp, msgLevel) =>
-    import('glpk.js')
-      .then(glpk => {
-        return glpk.default
-      })
-      .then(glpk => {
-        return glpk(lp, msgLevel)
-      });
+const solve = async (lp, msgLevel) => {
+  const solve = (glpk as any)().solve
+  return solve(lp, msgLevel)
+}
 
 function updateBestSolutionSet(edges, bbip) {
   // TODO: original function accepts either a LP solution,
   // a list of edge numbers, or a edge set (aka a bitmap).
   // We're only dealing with the list for now.
 
-  const nedges = bbip.cip.edges.length;
-  const edgeMask = new Set();
+  const nedges = bbip.cip.edges.length
+  const edgeMask = new Set()
 
   // We are given an explicit set of edges
   for (let i = 0; i < edges.length; i++) {
-    edgeMask.add(edges[i]);
+    edgeMask.add(edges[i])
   }
 
   // Compute length of this solution, in edge order
-  let length = 0;
+  let length = 0
   for (let i = 0; i < nedges; i++) {
     if (edgeMask.has(i)) {
-      length += bbip.cip.edges[i].length;
+      length += bbip.cip.edges[i].length
     }
   }
 
@@ -1239,15 +1257,15 @@ function updateBestSolutionSet(edges, bbip) {
 
   bbip.solution = {
     length,
-    edges: []
-  };
+    edges: [],
+  }
   for (let i = 0; i < nedges; i++) {
     if (edgeMask.has(i)) {
-      bbip.solution.edges.push(i);
+      bbip.solution.edges.push(i)
     }
   }
 
-  bbip.upperbound = length;
+  bbip.upperbound = length
   return true
 }
 
@@ -1257,34 +1275,34 @@ function updateBestSolutionSet(edges, bbip) {
  * @returns an object with...
  */
 function startupHeuristicUpperBound(cip) {
-  const { terminals, edges } = cip;
-  const n = edges.length;
-  const fstLen = edges.map(e => e.length);
-  const mstLen = [];
-  const rankings = [];
-  let nranks = 0;
+  const { terminals, edges } = cip
+  const n = edges.length
+  const fstLen = edges.map((e) => e.length)
+  const mstLen = []
+  const rankings = []
+  let nranks = 0
 
   // Compute MST length of each FST
   for (let i = 0; i < n; i++) {
-    const terms = edges[i].terminalIndices.map(ti => terminals[ti - 1]);
-    const mst = getRmst(terms);
-    mstLen[i] = mst.map(e => e.len).reduce((s, l) => s + l);
+    const terms = edges[i].terminalIndices.map((ti) => terminals[ti - 1])
+    const mst = getRmst(terms)
+    mstLen[i] = mst.map((e) => e.len).reduce((s, l) => s + l)
   }
-  let ranking = computeFstRanking(fstLen, mstLen);
-  rankings[nranks++] = ranking;
+  let ranking = computeFstRanking(fstLen, mstLen)
+  rankings[nranks++] = ranking
 
   // Pretend each edge in the MST has length 1
   for (let i = 0; i < n; i++) {
-    mstLen[i] = edges[i].terminalIndices.length - 1;
+    mstLen[i] = edges[i].terminalIndices.length - 1
   }
-  ranking = computeFstRanking(fstLen, mstLen);
-  rankings[nranks++] = ranking;
+  ranking = computeFstRanking(fstLen, mstLen)
+  rankings[nranks++] = ranking
 
-  const mstEdges = sortedMstEdges(edges);
+  const mstEdges = sortedMstEdges(edges)
 
   return {
     rankings,
-    mstEdges
+    mstEdges,
   }
 }
 
@@ -1295,13 +1313,15 @@ function startupHeuristicUpperBound(cip) {
  */
 function computeFstRanking(num, den) {
   // To ensure stability, we round ratios to the 12th decimal place
-  const factor = 1000000000000;
-  const indices = num.map((_, i) => i);
-  const ratios = indices.map(i => Math.round(num[i] / den[i] * factor) / factor);
-  indices.sort((a, b) => ratios[a] - ratios[b]);
+  const factor = 1000000000000
+  const indices = num.map((_, i) => i)
+  const ratios = indices.map(
+    (i) => Math.round((num[i] / den[i]) * factor) / factor
+  )
+  indices.sort((a, b) => ratios[a] - ratios[b])
 
-  const ranking = [];
-  for (let i = 0; i < indices.length; i++) ranking[indices[i]] = i;
+  const ranking = []
+  for (let i = 0; i < indices.length; i++) ranking[indices[i]] = i
   return ranking
 }
 
@@ -1310,15 +1330,15 @@ function computeFstRanking(num, den) {
  * @param {*} edges the fsts we got from phase 1
  */
 function sortedMstEdges(edges) {
-  const mstEdges = [];
+  const mstEdges = []
   for (let i = 0; i < edges.length; i++) {
     if (edges[i].edges.length === 2) {
-      mstEdges.push(i);
+      mstEdges.push(i)
     }
   }
-  
-  mstEdges.sort((a, b) => edges[a].length - edges[b].length);
-  
+
+  mstEdges.sort((a, b) => edges[a].length - edges[b].length)
+
   // Remove all non-MST edges from the list
   // TODO
 
@@ -1334,58 +1354,58 @@ function sortedMstEdges(edges) {
  */
 function computeHeuristicUpperBound(solution, bbip) {
   if (!bbip.ubip) {
-    bbip.ubip = startupHeuristicUpperBound(bbip.cip);
+    bbip.ubip = startupHeuristicUpperBound(bbip.cip)
   }
 
-  const oldUb = bbip.upperbound || Infinity;
-  bbip.ubip.bestZ = oldUb;
+  const oldUb = bbip.upperbound || Infinity
+  bbip.ubip.bestZ = oldUb
 
   // Classify edges in 3 buckets by weight: 1s, fractions, and 0s
-  const edgesIntegral = [];
-  const edgesFractional = [];
-  const edgesZero = [];
+  const edgesIntegral = []
+  const edgesFractional = []
+  const edgesZero = []
 
   for (let i = 0; i < bbip.cip.edges.length; i++) {
-    const weight = solution.vars['e' + i];
+    const weight = solution.vars["e" + i]
     if (weight <= 0.00001) {
-      edgesZero.push(i);
+      edgesZero.push(i)
     } else if (weight + 0.00001 >= 1) {
-      edgesIntegral.push(i);
+      edgesIntegral.push(i)
     } else {
-      edgesFractional.push(i);
+      edgesFractional.push(i)
     }
   }
 
   // Repeat the greedy heuristic once for each FST rank ordering
   bbip.ubip.rankings.forEach((ranking, i) => {
     // Sort the integral FSTs by rank only
-    edgesIntegral.sort(sortByRank(ranking));
+    edgesIntegral.sort(sortByRank(ranking))
 
     // Sort the fractional FSTs by LP weight, then rank
-    edgesFractional.sort(sortByLpAndRank(solution.vars, ranking));
+    edgesFractional.sort(sortByLpAndRank(solution.vars, ranking))
 
     // Sort the zero-weight FSTs by rank only
-    edgesZero.sort(sortByRank(ranking));
+    edgesZero.sort(sortByRank(ranking))
 
     // Try several greedy trees using this ordering of FSTs
-    const edgeList = [...edgesIntegral, ...edgesFractional, ...edgesZero];
+    const edgeList = [...edgesIntegral, ...edgesFractional, ...edgesZero]
     // console.log('*** Try Trees [1] for i =', i, 'got edge list:', edgeList)
-    tryTrees(edgeList, bbip);
+    tryTrees(edgeList, bbip)
 
     // Create a second ordering by placing MST edges last
     edgeList.sort((a, b) => {
-      const la = bbip.cip.edges[a].edges.length;
-      const lb = bbip.cip.edges[b].edges.length;
+      const la = bbip.cip.edges[a].edges.length
+      const lb = bbip.cip.edges[b].edges.length
       if (la === 2 && lb !== 2) return 1
       if (lb === 2 && la !== 2) return -1
       return 0
-    });
+    })
 
     // console.log('*** Try Trees [2] for i =', i, 'got edge list:', edgeList)
 
     // Try a few greedy trees using this ordering
-    tryTrees(edgeList, bbip);
-  });
+    tryTrees(edgeList, bbip)
+  })
 
   return bbip.ubip.bestZ < oldUb
 }
@@ -1396,8 +1416,8 @@ function sortByRank(ranking) {
 
 function sortByLpAndRank(x, ranking) {
   return (a, b) => {
-    const w1 = x['e' + a];
-    const w2 = x['e' + b];
+    const w1 = x["e" + a]
+    const w2 = x["e" + b]
     if (w1 !== w2) return w1 - w2
     return ranking[a] - ranking[b]
   }
@@ -1407,70 +1427,70 @@ function sortByLpAndRank(x, ranking) {
  * Construct several trees according to the given sorted list of FSTs
  */
 function tryTrees(edgeList, bbip) {
-  const used = new Set();
+  const used = new Set()
 
   // Construct the initial tree. Note which edges were used.
-  let l = ubKruskal(edgeList, used, bbip);
+  let l = ubKruskal(edgeList, used, bbip)
 
   if (l === Infinity) return // No initial tree found
 
   // Prepare a list to be able to quickly add an edge at the front
-  const tempEdges = [null, ...edgeList];
+  const tempEdges = [null, ...edgeList]
 
   // Determine the limit of edges to try
-  let limit;
-  for (limit = 2; (1 << limit) < edgeList.length; limit++) {}
+  let limit
+  for (limit = 2; 1 << limit < edgeList.length; limit++) {}
 
   // Compute small absolute gap value
-  let smallGap = 0.0001 * Math.abs(bbip.ubip.bestZ || Infinity);
-  if (smallGap < 0.0001) smallGap = 0.0001; // Warn: scaled!
+  let smallGap = 0.0001 * Math.abs(bbip.ubip.bestZ || Infinity)
+  if (smallGap < 0.0001) smallGap = 0.0001 // Warn: scaled!
 
   // Greedy local search
-  let haveReset = false;
-  let orgLimit = limit;
-  let oldL = Infinity;
-  let k = edgeList.length + 1;
+  let haveReset = false
+  let orgLimit = limit
+  let oldL = Infinity
+  let k = edgeList.length + 1
 
   for (let i = 0; i < edgeList.length; i++) {
-    let e = edgeList[i];
+    let e = edgeList[i]
     if (used.has(e)) continue
 
     // Force edge e to be chosen first
-    tempEdges[0] = e;
+    tempEdges[0] = e
 
     // Clear old used map
-    used.clear();
+    used.clear()
 
-    l = ubKruskal(tempEdges, used, bbip);
+    l = ubKruskal(tempEdges, used, bbip)
 
     // If improved solution then replace tempEdges
     if (l < oldL) {
-      k = 1;
+      k = 1
       for (let j = 0; j < edgeList.length; j++) {
-        let e = edgeList[j];
+        let e = edgeList[j]
         if (used.has(e) || bbip.cip.edges[e].terminalIndices.length === 2) {
-          tempEdges[k++] = e;
+          tempEdges[k++] = e
         }
       }
-      oldL = l;
+      oldL = l
 
       // Compute small absolute gap value
-      smallGap = 0.0001 * Math.abs(bbip.ubip.bestZ);
-      if (smallGap < 0.0001) smallGap = 0.0001; // Warn: scaled!
+      smallGap = 0.0001 * Math.abs(bbip.ubip.bestZ)
+      if (smallGap < 0.0001) smallGap = 0.0001 // Warn: scaled!
     }
 
     // If we are really close to optimum then restart and intensify search
-    let currGap = l - bbip.ubip.bestZ;
+    let currGap = l - bbip.ubip.bestZ
     if (!haveReset && currGap <= smallGap) {
       // console.log('*** Intensify!! currGap =', currGap, '<= smallGap =', smallGap)
       // Let the new limit be double, plus an a*x**2 term whose coefficient
       // is linearly dependent on the gap
-      const fraction = (smallGap - currGap) / smallGap;
-      const quadratic = Math.floor(fraction * orgLimit**2);
-      limit = 2 * orgLimit + quadratic;
+      const fraction = (smallGap - currGap) / smallGap
+      const quadratic = Math.floor(fraction * orgLimit ** 2)
+      limit = 2 * orgLimit + quadratic
 
-      i = 0;
-      haveReset = true;
+      i = 0
+      haveReset = true
     }
 
     if (--limit <= 0) break
@@ -1483,53 +1503,53 @@ function tryTrees(edgeList, bbip) {
  * than previously known, record it and update the upper bound.
  */
 function ubKruskal(edgeList, used, bbip) {
-  const nverts = bbip.cip.terminals.length;
-  const nedges = edgeList.length;
+  const nverts = bbip.cip.terminals.length
+  const nedges = edgeList.length
 
-  const dsuf = new DSUF();
+  const dsuf = new DSUF()
 
-  let components = nverts;
-  let length = 0;
-  const treeEdges = [];
+  let components = nverts
+  let length = 0
+  const treeEdges = []
   // let ep1 = 0 // Not needed: just do treeEdges.push()
-  let ep2 = 0;
-  let ep3 = nedges;
+  let ep2 = 0
+  let ep3 = nedges
   while (components > 1) {
     if (ep2 >= ep3) {
       // FSTs ran out before tree constructed
-      length = Infinity;
+      length = Infinity
       break
     }
-    const e = edgeList[ep2++];
+    const e = edgeList[ep2++]
     // console.log('% -- New iter: e =', e)
-    const mark = new Set();
-    let vp1 = 0;
-    const vp2 = bbip.cip.edges[e].edges.length * 2;
+    const mark = new Set()
+    let vp1 = 0
+    const vp2 = bbip.cip.edges[e].edges.length * 2
     while (true) {
       if (vp1 >= vp2) {
         // No cycle! Include e in solution
         // console.log('% No cycle, including', e)
-        treeEdges.push(e);
-        length += bbip.cip.edges[e].length;
-        used.add(e);
+        treeEdges.push(e)
+        length += bbip.cip.edges[e].length
+        used.add(e)
         // Unite all subtrees joined
-        const [i, ...roots] = Array.from(mark);
-        roots.forEach(j => dsuf.connect(i, j));
-        components -= mark.size - 1;
+        const [i, ...roots] = Array.from(mark)
+        roots.forEach((j) => dsuf.connect(i, j))
+        components -= mark.size - 1
         break
       }
-      const tij = bbip.cip.edges[e].edges[vp1 >> 1][vp1 & 1] - 1;
-      vp1++;
+      const tij = bbip.cip.edges[e].edges[vp1 >> 1][vp1 & 1] - 1
+      vp1++
       if (tij < 0) continue
-      const oj = bbip.cip.edges[e].terminalIndices[tij] - 1;
-      const j = dsuf.find(oj);
+      const oj = bbip.cip.edges[e].terminalIndices[tij] - 1
+      const j = dsuf.find(oj)
 
       if (mark.has(j)) {
         // console.log('% Cycle with', j, '/ was:', oj)
         break
       }
       // console.log('% Mark', j)
-      mark.add(j);
+      mark.add(j)
     }
   }
 
@@ -1538,7 +1558,7 @@ function ubKruskal(edgeList, used, bbip) {
   if (components === 1) {
     // A solution was found
     if (updateBestSolutionSet(treeEdges, bbip)) {
-      bbip.ubip.bestZ = bbip.upperbound;
+      bbip.ubip.bestZ = bbip.upperbound
     }
   }
 
@@ -1550,10 +1570,10 @@ function ubKruskal(edgeList, used, bbip) {
  * @param {*} data Problem data, including terminals, masks, and edges
  */
 function getConstraintPool(data) {
-  const nterms = data.terminals.length;
-  const vertMask = new Set(data.initialVertMask);
-  const edgeMask = new Set(data.initialEdgeMask);
-  const pool = [];
+  const nterms = data.terminals.length
+  const vertMask = new Set(data.initialVertMask)
+  const edgeMask = new Set(data.initialEdgeMask)
+  const pool = []
 
   // Note: we don't need to count sizes first, because
   // we don't deal with memory management ourselves
@@ -1564,93 +1584,93 @@ function getConstraintPool(data) {
     vars: data.edges
       .filter((_, i) => edgeMask.has(i))
       .map((e, i) => ({
-        name: 'e' + i,
-        coef: e.terminalIndices.length - 1
+        name: "e" + i,
+        coef: e.terminalIndices.length - 1,
       })),
     selected: true,
     bnds: {
       type: constants.GLP_FX, // =
-      lb: vertMask.size - 1
-    }
-  });
+      lb: vertMask.size - 1,
+    },
+  })
 
   // Generate one cutset constraint per terminal
   data.terminals.forEach((_, i) => {
     if (!vertMask.has(i)) return
     pool.push({
-      name: 'cutset-' + i,
+      name: "cutset-" + i,
       vars: data.termTrees[i]
-        .filter(j => edgeMask.has(j))
-        .map(j => ({
-          name: 'e' + j,
-          coef: 1
+        .filter((j) => edgeMask.has(j))
+        .map((j) => ({
+          name: "e" + j,
+          coef: 1,
         })),
       selected: true,
       bnds: {
         type: constants.GLP_LO, // >=
         lb: 1,
-      }
-    });
-  });
+      },
+    })
+  })
 
   // Generate one constraint per incompatible pair
   // TODO ...
 
   // Generate one constraint for each 2-SEC (Subtour Elimination Constraints)
-  const fsmask = new Set();
+  const fsmask = new Set()
   for (let i = 0; i < nterms; i++) {
-    const tlist = [];
-    const counts = data.terminals.map(_ => 0);
-    const tmask = new Set();
+    const tlist = []
+    const counts = data.terminals.map((_) => 0)
+    const tmask = new Set()
 
     if (!vertMask.has(i)) continue
-    data.termTrees[i].forEach(fs => {
+    data.termTrees[i].forEach((fs) => {
       if (!edgeMask.has(fs)) return
-      fsmask.add(fs);
-      const fst = data.edges[fs];
-      fst.edges.forEach(edge => {
-        edge.forEach(vtx => {
+      fsmask.add(fs)
+      const fst = data.edges[fs]
+      fst.edges.forEach((edge) => {
+        edge.forEach((vtx) => {
           if (vtx > 0) {
-            const j = fst.terminalIndices[vtx - 1] - 1;
+            const j = fst.terminalIndices[vtx - 1] - 1
             if (j <= i) return
             if (!vertMask.has(j)) return
-            counts[j]++;
+            counts[j]++
             if (tmask.has(j)) return
-            tmask.add(j);
-            tlist.push(j);
+            tmask.add(j)
+            tlist.push(j)
           }
-        });
-      });
-    });
-    tlist.forEach(j => {
+        })
+      })
+    })
+    tlist.forEach((j) => {
       if (counts[j] < 2) return
       // Generate 2SEC {i, j}
       pool.push({
-        name: '2sec-' + i + ',' + j,
+        name: "2sec-" + i + "," + j,
         vars: data.termTrees[j]
-          .filter(fs => fsmask.has(fs))
-          .map(fs => ({
-            name: 'e' + fs,
-            coef: 1
+          .filter((fs) => fsmask.has(fs))
+          .map((fs) => ({
+            name: "e" + fs,
+            coef: 1,
           })),
         selected: false,
         bnds: {
           type: constants.GLP_UP, // <=
           ub: 1,
-        }
-      });
-    });
-    data.termTrees[i].forEach(fs => fsmask.delete(fs));
+        },
+      })
+    })
+    data.termTrees[i].forEach((fs) => fsmask.delete(fs))
   }
 
   // Remove duplicate rows (we do it here instead of row-by-row)
-  const poolDupes = new Set();
-  const poolUniq = pool.filter(r => {
-    const s = JSON.stringify({ ...r, name: null });
-    const ret = !poolDupes.has(s);
-    poolDupes.add(s);
+  const poolDupes = new Set()
+  const poolUniq = pool.filter((r) => {
+    const s = JSON.stringify({ ...r, name: null })
+    const ret = !poolDupes.has(s)
+    poolDupes.add(s)
     return ret
-  });
+  })
 
   return poolUniq
 }
@@ -1663,24 +1683,24 @@ function getConstraintPool(data) {
 function getInitialFormulation(cip, pool) {
   const objective = {
     direction: constants.GLP_MIN,
-    name: 'obj',
+    name: "obj",
     vars: cip.edges.map((e, i) => ({
-      name: 'e' + i,
-      coef: e.length
-    }))
-  };
+      name: "e" + i,
+      coef: e.length,
+    })),
+  }
 
-  const binaries = cip.edges.map((_, i) => 'e' + i);
+  const binaries = cip.edges.map((_, i) => "e" + i)
 
   const bounds = cip.edges.map((_, i) => ({
-    name: 'e' + i,
+    name: "e" + i,
     type: constants.GLP_DB,
     lb: 0,
-    ub: 1
-  }));
- 
+    ub: 1,
+  }))
+
   return {
-    name: 'LP',
+    name: "LP",
     objective,
     // binaries,
     bounds,
@@ -1696,32 +1716,32 @@ function getInitialFormulation(cip, pool) {
  * This process repeats until all constraints are met, or there is no solution.
  */
 async function solveLpOverConstraintPool(bbip) {
-  const pool = bbip.cpool;
-  let solution;
+  const pool = bbip.cpool
+  let solution
   while (true) {
-    const tableaux = pool.filter(r => r.selected);
-    const lp = { ...bbip.lp, subjectTo: tableaux };
-    solution = await solve(lp, constants.GLP_MSG_OFF);
+    const tableaux = pool.filter((r) => r.selected)
+    const lp = { ...bbip.lp, subjectTo: tableaux }
+    solution = await solve(lp, constants.GLP_MSG_OFF)
 
-    console.log({solution})
+    console.log({ solution })
 
     if (solution.result.status !== constants.GLP_OPT) break
-    
-    let anyViolations = false;
+
+    let anyViolations = false
     for (let i = 0; i < pool.length; i++) {
-      const row = pool[i];
-      const slack = computeSlackValue(solution, row);
-      
+      const row = pool[i]
+      const slack = computeSlackValue(solution, row)
+
       if (slack > 0.00001) continue // Not binding, much less violated
       // Binding
       if (row.selected) continue // Already in tableaux
       if (slack < -0.00001) {
         // Not in the tableaux, and violated. Add to tableaux
-        row.selected = true;
-        anyViolations = true;
+        row.selected = true
+        anyViolations = true
       }
     }
-    
+
     // Done if no violations found
     if (!anyViolations) break
   }
@@ -1733,7 +1753,7 @@ async function solveLpOverConstraintPool(bbip) {
     z: solution.result.z,
     name: solution.name,
     time: solution.time,
-    vars: solution.result.vars
+    vars: solution.result.vars,
   }
 }
 
@@ -1744,8 +1764,8 @@ async function solveLpOverConstraintPool(bbip) {
  * @param {*} row The target row
  */
 function computeSlackValue(solution, row) {
-  const sv = solution.result.vars;
-  const sum = row.vars.reduce((s, v) => s + v.coef * sv[v.name], 0);
+  const sv = solution.result.vars
+  const sum = row.vars.reduce((s, v) => s + v.coef * sv[v.name], 0)
   switch (row.bnds.type) {
     case constants.GLP_UP:
       return row.bnds.ub - sum
@@ -1758,12 +1778,12 @@ function computeSlackValue(solution, row) {
 }
 
 function createBBTree() {
-  let serial = 0;
+  let serial = 0
   return {
     nextSerial: () => serial++,
     first: null,
     heapBest: new Heap(nodeIsBetter),
-    heapWorst: new Heap(nodeIsWorse)
+    heapWorst: new Heap(nodeIsWorse),
   }
 }
 
@@ -1782,11 +1802,10 @@ function nodeIsWorse(a, b) {
  * Binary heap class used to efficiently get the next interesting node
  */
 class Heap {
-
   constructor(isParent) {
-    this.isParent = isParent;
-    this.array = [];
-    this.indices = new Map();
+    this.isParent = isParent
+    this.array = []
+    this.indices = new Map()
   }
 
   getRoot() {
@@ -1795,67 +1814,66 @@ class Heap {
 
   insert(node) {
     // Add it at the end, and sift it up
-    let i;
-    for (i = this.array.length; i > 0;) {
-      const j = (i - 1) >> 1;
-      const node2 = this.array[j];
+    let i
+    for (i = this.array.length; i > 0; ) {
+      const j = (i - 1) >> 1
+      const node2 = this.array[j]
       if (this.isParent(node2, node)) break
-      this.indices.set(node2, i);
-      this.array[i] = node2;
-      i = j;
+      this.indices.set(node2, i)
+      this.array[i] = node2
+      i = j
     }
-    this.indices.set(node, i);
-    this.array[i] = node;
+    this.indices.set(node, i)
+    this.array[i] = node
   }
 
   remove(node) {
     // Find node being deleted
-    let i = this.indices.get(node);
+    let i = this.indices.get(node)
     if (i === undefined) return // Not found
 
     // Deleted node is no longer here
-    this.indices.delete(node);
+    this.indices.delete(node)
 
     // Remove last element from heap
-    const node2 = this.array.pop();
+    const node2 = this.array.pop()
     if (node === node2) return // Removed last item, nothing to do
 
     // Assume that node2 will be in position i
     // First, sift it up...
     while (i > 0) {
-      const j = (i - 1) >> 1;
-      const node3 = this.array[j];
+      const j = (i - 1) >> 1
+      const node3 = this.array[j]
       if (this.isParent(node3, node2)) break
-      this.indices.set(node3, i);
-      this.array[i] = node3;
-      i = j;
+      this.indices.set(node3, i)
+      this.array[i] = node3
+      i = j
     }
 
     // Later, sift it down...
     while (i < this.array.length) {
-      let j = (i << 1) + 1;
+      let j = (i << 1) + 1
       if (j >= this.array.length) break
-      let node3 = this.array[j];
+      let node3 = this.array[j]
       if (j + 1 < this.array.length) {
-        const node4 = this.array[j+1];
+        const node4 = this.array[j + 1]
         if (this.isParent(node4, node3)) {
-          j++;
-          node3 = node4;
+          j++
+          node3 = node4
         }
       }
       if (this.isParent(node2, node3)) break
-      this.indices.set(node3, i);
-      this.array[i] = node3;
-      i = j;
+      this.indices.set(node3, i)
+      this.array[i] = node3
+      i = j
     }
-    this.indices.set(node2, i);
-    this.array[i] = node2;
+    this.indices.set(node2, i)
+    this.array[i] = node2
   }
 
   size() {
     return this.array.length
   }
-
 }
 
 /**
@@ -1865,14 +1883,16 @@ class Heap {
  * @returns an object with all required info
  */
 function prepare(terminals, edges) {
-  const initialVertMask = new Set(terminals.map((_, i) => i));
-  const initialEdgeMask = new Set(edges.map((_, i) => i));
-  const termTrees = getTermTrees(edges);
+  const initialVertMask = new Set(terminals.map((_, i) => i))
+  const initialEdgeMask = new Set(edges.map((_, i) => i))
+  const termTrees = getTermTrees(edges)
 
   return {
-    terminals, edges,
-    initialVertMask, initialEdgeMask,
-    termTrees
+    terminals,
+    edges,
+    initialVertMask,
+    initialEdgeMask,
+    termTrees,
   }
 }
 
@@ -1882,20 +1902,20 @@ function prepare(terminals, edges) {
  * @param {*} edges the fsts we got from phase 1
  */
 function getTermTrees(edges) {
-  const termTrees = [];
+  const termTrees = []
   edges.forEach((fst, i) => {
-    fst.edges.forEach(edge => {
-      edge.forEach(vtx => {
+    fst.edges.forEach((edge) => {
+      edge.forEach((vtx) => {
         if (vtx >= 0) {
-          const vtxIdx = fst.terminalIndices[vtx - 1] - 1;
-          if (!termTrees[vtxIdx]) termTrees[vtxIdx] = [];
+          const vtxIdx = fst.terminalIndices[vtx - 1] - 1
+          if (!termTrees[vtxIdx]) termTrees[vtxIdx] = []
           if (termTrees[vtxIdx].indexOf(i) === -1) {
-            termTrees[vtxIdx].push(i);
+            termTrees[vtxIdx].push(i)
           }
         }
-      });
-    });
-  });
+      })
+    })
+  })
   return termTrees
 }
 
@@ -1904,14 +1924,14 @@ function getTermTrees(edges) {
  */
 function getBbInfo(cip) {
   // Get pool of constraints
-  const cpool = getConstraintPool(cip);
+  const cpool = getConstraintPool(cip)
 
   // Get initial formulation
-  const lp = getInitialFormulation(cip, cpool);
+  const lp = getInitialFormulation(cip, cpool)
 
   // Initialize the branch-and-bound tree
-  const bbtree = createBBTree();
-  
+  const bbtree = createBBTree()
+
   // Create vectors to describe the current problem
   // TODO: We never have edge masks or required edges, so we're skipping this
 
@@ -1926,7 +1946,7 @@ function getBbInfo(cip) {
     dir: 0,
     depth: 0,
     // ...
-  };
+  }
 
   // Fill in the branch-and-bound info structure
   const bbip = {
@@ -1937,12 +1957,12 @@ function getBbInfo(cip) {
     prevlb: -Infinity,
     bestZ: Infinity,
     // ...
-  };
+  }
 
   // Make the root node inactive by putting it in the bbtree
-  bbtree.first = root;
-  bbtree.heapBest.insert(root);
-  bbtree.heapWorst.insert(root);
+  bbtree.first = root
+  bbtree.heapBest.insert(root)
+  bbtree.heapWorst.insert(root)
 
   return bbip
 }
@@ -1954,35 +1974,34 @@ function getBbInfo(cip) {
  * @returns the minimum spanning tree
  */
 async function branchAndCut(cip, bbip) {
-
   // Get heuristic upper bound
-  bbip.ubip = startupHeuristicUpperBound(cip);
+  bbip.ubip = startupHeuristicUpperBound(cip)
 
   for (;;) {
     // Select the next node to process
-    const node = selectNextNode(bbip.bbtree);
+    const node = selectNextNode(bbip.bbtree)
     if (!node) break
 
     // This is perhaps a new lower bound...
-    newLowerBound(node.z, bbip);
+    newLowerBound(node.z, bbip)
 
-    if (node.z > -Infinity) ;
+    if (node.z > -Infinity);
 
     // Restore the LP tableaux and basis for this node
-    const lp = node.lp;
+    const lp = node.lp
 
     // Determine new preemption value
-    const nextBest = bbip.bbtree.heapBest.getRoot();
-    bbip.preemptZ = nextBest ? nextBest.z : bbip.bestZ;
+    const nextBest = bbip.bbtree.heapBest.getRoot()
+    bbip.preemptZ = nextBest ? nextBest.z : bbip.bestZ
 
     // Mod LP to represent problem from new node (??)
     // TODO ...
 
     // Set up new node to be processed
-    bbip.node = node;
+    bbip.node = node
 
     // Process the current node
-    await computeGoodLowerBound(bbip);
+    await computeGoodLowerBound(bbip)
 
     break // TODO: No infinite loop!
   }
@@ -1990,7 +2009,7 @@ async function branchAndCut(cip, bbip) {
 
 /**
  * Select the next node to process from a given bb tree
- * @param {*} bbtree 
+ * @param {*} bbtree
  */
 function selectNextNode(bbtree) {
   return bbtree.heapBest.getRoot()
@@ -2005,43 +2024,42 @@ function selectNextNode(bbtree) {
  * - Separation finds no more violated constraints
  */
 async function computeGoodLowerBound(bbip) {
-
   while (true) {
-    let result = await solveLpOverConstraintPool(bbip);
-    const z = result.z;
-    bbip.node.iter++;
+    let result = await solveLpOverConstraintPool(bbip)
+    const z = result.z
+    bbip.node.iter++
 
     // console.log('  % Node', bbip.node.num, 'LP', bbip.node.iter, 'Solution, length =', z)
 
     switch (result.status) {
       case constants.GLP_OPT:
         if (z >= bbip.bestZ) {
-          bbip.node.z = bbip.bestZ;
-          return 'cutoff'
+          bbip.node.z = bbip.bestZ
+          return "cutoff"
         }
         break
       // case glpk.cutoff: // We don't have cutoff
       case constants.GLP_INFEAS:
-        bbip.node.z = bbip.bestZ;
-        return 'infeasible'
+        bbip.node.z = bbip.bestZ
+        return "infeasible"
       default:
-        throw new Error('Solve status = ' + result.status)
+        throw new Error("Solve status = " + result.status)
     }
 
     // Solution is feasible, check for integer-feasible...
-    const { isInt, numFractional } = integerFeasibleSolution(result, bbip.cip);
+    const { isInt, numFractional } = integerFeasibleSolution(result, bbip.cip)
 
     // Check if this node's objective value is now high enough to be preempted
     if (bbip.node.z > bbip.preemptZ) {
       // console.log('preempted')
-      return 'preempted'
+      return "preempted"
     }
 
     // Perhaps we have a new lower bound?
-    newLowerBound(z, bbip);
+    newLowerBound(z, bbip)
 
     if (computeHeuristicUpperBound(result, bbip)) {
-       newUpperBound(bbip.upperbound, bbip);
+      newUpperBound(bbip.upperbound, bbip)
     }
 
     // If we have improved the upper bound, it is possible
@@ -2064,12 +2082,12 @@ async function computeGoodLowerBound(bbip) {
  * First we check for integrality, then we check connectedness.
  */
 function integerFeasibleSolution(solution, cip) {
-  let numFractional = 0;
+  let numFractional = 0
 
   for (let i = 0; i < cip.edges.length; i++) {
-    if (solution.vars['e' + i] <= 0.00001) continue
-    if (solution.vars['e' + i] + 0.00001 >= 1) continue
-    numFractional++;
+    if (solution.vars["e" + i] <= 0.00001) continue
+    if (solution.vars["e" + i] + 0.00001 >= 1) continue
+    numFractional++
   }
 
   if (numFractional) {
@@ -2079,15 +2097,15 @@ function integerFeasibleSolution(solution, cip) {
 
   // All solution variables are either 0 or 1 -- integral.
   // Note all edges present in the solution
-  let j = 0;
-  let startingEdge = -1;
-  const integralEdges = new Set();
+  let j = 0
+  let startingEdge = -1
+  const integralEdges = new Set()
   for (let i = 0; i < cip.edges.length; i++) {
     // Object.keys(solution.vars).filter(v => solution.vars[v] >= 0.5))
-    if (solution.vars['e' + i] >= 0.5) {
-      integralEdges.add(i);
-      startingEdge = i;
-      j += cip.edges[i].terminalIndices.length - 1;
+    if (solution.vars["e" + i] >= 0.5) {
+      integralEdges.add(i)
+      startingEdge = i
+      j += cip.edges[i].terminalIndices.length - 1
     }
   }
 
@@ -2105,27 +2123,27 @@ function integerFeasibleSolution(solution, cip) {
   }
 
   // Create temporary mask of vertices we have not yet seen
-  const vertsLeft = new Set(cip.terminals.map((_, i) => i));
+  const vertsLeft = new Set(cip.terminals.map((_, i) => i))
 
   // Find connected component containing the starting edge
-  integralEdges.delete(startingEdge);
-  const stack = [startingEdge];
+  integralEdges.delete(startingEdge)
+  const stack = [startingEdge]
   while (stack.length) {
-    const fs = stack.pop();
-    cip.edges[fs].terminalIndices.forEach(tpp => {
-      const t = tpp - 1;
+    const fs = stack.pop()
+    cip.edges[fs].terminalIndices.forEach((tpp) => {
+      const t = tpp - 1
       if (!vertsLeft.has(t)) return
-      vertsLeft.delete(t);
-      cip.termTrees[t].forEach(fs2 => {
+      vertsLeft.delete(t)
+      cip.termTrees[t].forEach((fs2) => {
         if (!integralEdges.has(fs2)) return
-        integralEdges.delete(fs2);
-        stack.push(fs2);
-      });
-    });
+        integralEdges.delete(fs2)
+        stack.push(fs2)
+      })
+    })
   }
 
   // See if any vertices were not reached
-  const notReached = vertsLeft.size !== 0;
+  const notReached = vertsLeft.size !== 0
 
   if (notReached) {
     // At least one more connected component -- solution is not connected,
@@ -2141,22 +2159,22 @@ function integerFeasibleSolution(solution, cip) {
  * Prints a new lower bound
  */
 function newLowerBound(lb, bbip) {
-  let prev = bbip.prevlb;
+  let prev = bbip.prevlb
   if (lb <= prev) {
     return // No improvement
   }
 
   if (prev <= -Infinity) {
-    prev = lb; // Don't jump from initial value
+    prev = lb // Don't jump from initial value
   }
 
   // Print the old and new lower bounds
-  let oldGap, newGap;
+  let oldGap, newGap
   if (bbip.bestZ >= Infinity || bbip.bestZ === 0) {
-    oldGap = newGap = 99.9;
+    oldGap = newGap = 99.9
   } else {
-    oldGap = 100 * (bbip.bestZ - prev) / bbip.bestZ;
-    newGap = 100 * (bbip.bestZ - lb) / bbip.bestZ;
+    oldGap = (100 * (bbip.bestZ - prev)) / bbip.bestZ
+    newGap = (100 * (bbip.bestZ - lb)) / bbip.bestZ
   }
 
   // TODO: Set solver preempt value...
@@ -2164,24 +2182,25 @@ function newLowerBound(lb, bbip) {
   // console.log(' % @LO', prev, oldGap)
   // console.log(' % @LN', lb, newGap)
 
-  bbip.prevlb = lb;
+  bbip.prevlb = lb
 }
 
 /**
  * Prints a new upper bound
  */
 function newUpperBound(ub, bbip) {
-  let prev = bbip.bestZ;
-  if (prev >= Infinity) { // Don't jump from infinity
-    prev = ub;
+  let prev = bbip.bestZ
+  if (prev >= Infinity) {
+    // Don't jump from infinity
+    prev = ub
   }
 
-  let oldGap, newGap;
+  let oldGap, newGap
   if (bbip.prevlb <= -Infinity) {
-    oldGap = newGap = 99.9;
+    oldGap = newGap = 99.9
   } else {
-    oldGap = 100 * (prev - bbip.prevlb) / prev;
-    newGap = 100 * (ub - bbip.prevlb) / ub;
+    oldGap = (100 * (prev - bbip.prevlb)) / prev
+    newGap = (100 * (ub - bbip.prevlb)) / ub
   }
 
   // TODO: Set solver preempt value...
@@ -2195,34 +2214,33 @@ function newUpperBound(ub, bbip) {
  * @param {*} bbip problem and solution info
  */
 function buildSolution(bbip) {
-  const terminals = bbip.cip.terminals;
-  const solution = bbip.solution;
-  const length = solution.length;
-  const steiners = [];
-  const edges = [];
-  const edgeIds = [];
-  solution.edges.forEach(e => {
-    const fst = bbip.cip.edges[e];
-    const steinerOffset = steiners.length;
-    fst.steinerPoints.forEach(p => steiners.push(p));
-    
-    const id2absolute = n =>
-      n > 0 ? fst.terminalIndices[n - 1] : -steinerOffset + n;
-    const id2coords = n =>
-      n > 0 ? terminals[n - 1] : steiners[-n - 1];
-    
-    fst.edges.forEach(v => {
-      edgeIds.push(v.map(id2absolute));
-      edges.push(v.map(id2coords));
-    });
-  });
+  const terminals = bbip.cip.terminals
+  const solution = bbip.solution
+  const length = solution.length
+  const steiners = []
+  const edges = []
+  const edgeIds = []
+  solution.edges.forEach((e) => {
+    const fst = bbip.cip.edges[e]
+    const steinerOffset = steiners.length
+    fst.steinerPoints.forEach((p) => steiners.push(p))
+
+    const id2absolute = (n) =>
+      n > 0 ? fst.terminalIndices[n - 1] : -steinerOffset + n
+    const id2coords = (n) => (n > 0 ? terminals[n - 1] : steiners[-n - 1])
+
+    fst.edges.forEach((v) => {
+      edgeIds.push(v.map(id2absolute))
+      edges.push(v.map(id2coords))
+    })
+  })
 
   return {
     terminals: terminals,
     steiners: steiners,
     edges: edges,
     edgeIds: edgeIds,
-    length: length
+    length: length,
   }
 }
 
@@ -2232,9 +2250,9 @@ function buildSolution(bbip) {
  * @param {*} edges the fsts we got from phase 1
  */
 async function bb(terminals, edges) {
-  const data = prepare(terminals, edges);
-  const bbip = getBbInfo(data);
-  await branchAndCut(data, bbip);
+  const data = prepare(terminals, edges)
+  const bbip = getBbInfo(data)
+  await branchAndCut(data, bbip)
   return buildSolution(bbip)
 }
 
@@ -2250,11 +2268,11 @@ function rsmt(terminals) {
       steiners: [],
       edges: [],
       edgeIds: [],
-      length: 0
+      length: 0,
     }
   }
-  const { fsts } = rfst(terminals);
+  const { fsts } = rfst(terminals)
   return bb(terminals, fsts)
 }
 
-export default rsmt;
+export default rsmt

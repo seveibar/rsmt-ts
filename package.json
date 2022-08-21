@@ -1,11 +1,11 @@
 {
-  "name": "rsmt",
-  "version": "1.0.2",
+  "name": "rsmt-ts",
+  "version": "1.1.0",
   "description": "A library to obtain Rectilinear Steiner Minimal Trees",
-  "module": "dist/index.esm.js",
+  "module": "dist/index.js",
   "scripts": {
-    "prepare": "rollup --config",
-    "test": "jest"
+    "build": "tsup ./src/index.ts --sourcemap --dts",
+    "test": "ava"
   },
   "files": [
     "dist"
@@ -15,16 +15,16 @@
     "steiner",
     "tree"
   ],
-  "author": "Glue Digital <hola@glue.digital>, Severin Ibarluzea",
+  "author": "Severin Ibarluzea",
   "license": "MIT",
   "devDependencies": {
-    "@babel/preset-env": "^7.9.5",
-    "babel-jest": "^25.4.0",
-    "jest": "^25.4.0",
-    "jest-matcher-deep-close-to": "^2.0.1",
-    "rollup": "^2.7.3"
+    "ava": "^4.3.1",
+    "esbuild": "^0.15.5",
+    "esbuild-register": "^3.3.3",
+    "tsup": "^6.2.2",
+    "typescript": "^4.7.4"
   },
   "dependencies": {
-    "glpk.js": "^3.1.1"
+    "glpk.js": "^4.0.1"
   }
 }
