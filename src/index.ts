@@ -1,5 +1,8 @@
 import glpk from "glpk.js"
 
+export type Point = [number, number]
+export type Edge = { p1: number; p2: number; len: number }
+
 /**
  * Compute a matrix to check if the rectangle between two terminals is empty.
  *
@@ -142,13 +145,7 @@ export class DSUF {
  * @param {*} edges list of all edges on the graph, with their lengths
  * @returns the list of edges on the mst
  */
-export function mst(
-  edges: Array<{
-    p1: number
-    p2: number
-    len: number
-  }>
-) {
+export function mst(edges: Array<Edge>): Array<Edge> {
   edges.sort((a, b) => a.len - b.len)
   const dsuf = new DSUF()
   const ret: any[] = []
@@ -165,7 +162,7 @@ export function mst(
  * Computes the rectilineal (L1/Manhattan) distance between two terminals
  * @return distance between the two terminals
  */
-function RDIST(t1, t2) {
+function RDIST(t1: Point, t2: Point) {
   return Math.abs(t1[0] - t2[0]) + Math.abs(t1[1] - t2[1])
 }
 
@@ -176,7 +173,7 @@ function RDIST(t1, t2) {
  * @param {*} b second point
  * @returns distance between the points
  */
-function DSTDIR(dir, a, b) {
+function DSTDIR(dir: number, a: Point, b: Point) {
   const axis = dir % 2
   return Math.abs(a[axis] - b[axis])
 }
@@ -189,7 +186,7 @@ function DSTDIR(dir, a, b) {
  * @param {*} b second point
  * @returns distance between the points
  */
-function DSTDIRP(dir, a, b) {
+function DSTDIRP(dir: number, a: Point, b: Point) {
   const axis = 1 - (dir % 2)
   return Math.abs(a[axis] - b[axis])
 }
@@ -200,11 +197,10 @@ function DSTDIRP(dir, a, b) {
  * @param {*} a first point
  * @param {*} b second point
  */
-function SPOINT(dir, a, b) {
+function SPOINT(dir, a: Point, b: Point): [number, number] {
   return dir % 2 ? [a[0], b[1]] : [b[0], a[1]]
 }
 
-type Edge = { p1: number; p2: number; len: number }
 /**
  * Enumerates rectilineal edges for a terminal set.
  * Optionally can use empty rect info to reduce the number of edges
@@ -227,7 +223,11 @@ export function getEdges(terminals, emptyRects = []): Edge[] {
   return edges
 }
 
-function getRmst(terminals, emptyRects = []) {
+/**
+ * Get some Rectilinear Minimal Steiner Tree, but may be 1.5 times optimal
+ * (I think -Seve)
+ */
+export function getRmst(terminals, emptyRects = []) {
   const edges = getEdges(terminals, emptyRects)
   const theMst = mst(edges)
   return theMst
@@ -449,14 +449,17 @@ export function rfst(terminals: [number, number][]): {
  * Generate a map from each element to its successors in each cardinal direction
  * @param {*} terminals terminal points to consider
  * @returns an object with arrays for each direction which map indices to successors
+ *
+ * So for example, if you were to see west[3] = 7, that would mean that to the
+ * west of the terminal index 3 is terminal index 7.
  */
-function getSuccessors(terminals) {
+export function getSuccessors(terminals) {
   const { x: xOrdered, y: yOrdered } = getOrderedIndices(terminals)
 
-  const west: any[] = []
-  const east: any[] = []
-  const north: any[] = []
-  const south: any[] = []
+  const west: number[] = []
+  const east: number[] = []
+  const north: number[] = []
+  const south: number[] = []
 
   for (let i = 0; i < terminals.length; i++) {
     west[i] = east[i] = north[i] = south[i] = -1
@@ -539,7 +542,12 @@ function getUb0(terminals, successors) {
  */
 function getZt(terminals, successors, ub0s, emptyRects, bsds) {
   const dirs = ["east", "south", "west", "north"]
-  const zt = {}
+  const zt: {
+    east: number[][]
+    south: number[][]
+    west: number[][]
+    north: number[][]
+  } = {} as any
 
   dirs.forEach((d, di) => {
     zt[d] = []
