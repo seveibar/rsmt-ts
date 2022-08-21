@@ -1,12 +1,13 @@
 {
   "name": "rsmt-ts",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "A library to obtain Rectilinear Steiner Minimal Trees",
   "main": "dist/index.js",
   "scripts": {
     "build": "tsup ./src/index.ts --sourcemap --dts",
     "test": "ava"
   },
+  "repository": "git@github.com:seveibar/rsmt-ts.git",
   "files": [
     "dist"
   ],
