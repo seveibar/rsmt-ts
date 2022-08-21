@@ -15,5 +15,7 @@ jobs:
           cache: "yarn"
       - name: Run NPM Install
         run: yarn install --frozen-lockfile
+      - name: Build
+        run: yarn build
       - name: Run NPM Test
         run: yarn test

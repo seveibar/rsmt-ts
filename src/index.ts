@@ -1320,7 +1320,7 @@ function computeFstRanking(num, den) {
   )
   indices.sort((a, b) => ratios[a] - ratios[b])
 
-  const ranking = []
+  const ranking: number[] = []
   for (let i = 0; i < indices.length; i++) ranking[indices[i]] = i
   return ranking
 }
