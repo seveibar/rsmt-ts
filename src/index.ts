@@ -1278,8 +1278,8 @@ function startupHeuristicUpperBound(cip) {
   const { terminals, edges } = cip
   const n = edges.length
   const fstLen = edges.map((e) => e.length)
-  const mstLen = []
-  const rankings = []
+  const mstLen: any[] = []
+  const rankings: any[] = []
   let nranks = 0
 
   // Compute MST length of each FST
@@ -1330,7 +1330,7 @@ function computeFstRanking(num, den) {
  * @param {*} edges the fsts we got from phase 1
  */
 function sortedMstEdges(edges) {
-  const mstEdges = []
+  const mstEdges: number[] = []
   for (let i = 0; i < edges.length; i++) {
     if (edges[i].edges.length === 2) {
       mstEdges.push(i)
@@ -1361,9 +1361,9 @@ function computeHeuristicUpperBound(solution, bbip) {
   bbip.ubip.bestZ = oldUb
 
   // Classify edges in 3 buckets by weight: 1s, fractions, and 0s
-  const edgesIntegral = []
-  const edgesFractional = []
-  const edgesZero = []
+  const edgesIntegral: number[] = []
+  const edgesFractional: number[] = []
+  const edgesZero: number[] = []
 
   for (let i = 0; i < bbip.cip.edges.length; i++) {
     const weight = solution.vars["e" + i]
@@ -1510,7 +1510,7 @@ function ubKruskal(edgeList, used, bbip) {
 
   let components = nverts
   let length = 0
-  const treeEdges = []
+  const treeEdges: any[] = []
   // let ep1 = 0 // Not needed: just do treeEdges.push()
   let ep2 = 0
   let ep3 = nedges
@@ -1573,7 +1573,7 @@ function getConstraintPool(data) {
   const nterms = data.terminals.length
   const vertMask = new Set(data.initialVertMask)
   const edgeMask = new Set(data.initialEdgeMask)
-  const pool = []
+  const pool: any[] = []
 
   // Note: we don't need to count sizes first, because
   // we don't deal with memory management ourselves
@@ -1619,7 +1619,7 @@ function getConstraintPool(data) {
   // Generate one constraint for each 2-SEC (Subtour Elimination Constraints)
   const fsmask = new Set()
   for (let i = 0; i < nterms; i++) {
-    const tlist = []
+    const tlist: any = []
     const counts = data.terminals.map((_) => 0)
     const tmask = new Set()
 
@@ -1802,6 +1802,9 @@ function nodeIsWorse(a, b) {
  * Binary heap class used to efficiently get the next interesting node
  */
 class Heap {
+  isParent: (a: any, b: any) => boolean
+  array: any[]
+  indices: Map<any, any>
   constructor(isParent) {
     this.isParent = isParent
     this.array = []
@@ -1902,7 +1905,7 @@ function prepare(terminals, edges) {
  * @param {*} edges the fsts we got from phase 1
  */
 function getTermTrees(edges) {
-  const termTrees = []
+  const termTrees: any[] = []
   edges.forEach((fst, i) => {
     fst.edges.forEach((edge) => {
       edge.forEach((vtx) => {
@@ -1930,7 +1933,7 @@ function getBbInfo(cip) {
   const lp = getInitialFormulation(cip, cpool)
 
   // Initialize the branch-and-bound tree
-  const bbtree = createBBTree()
+  const bbtree: any = createBBTree()
 
   // Create vectors to describe the current problem
   // TODO: We never have edge masks or required edges, so we're skipping this
@@ -1985,7 +1988,8 @@ async function branchAndCut(cip, bbip) {
     // This is perhaps a new lower bound...
     newLowerBound(node.z, bbip)
 
-    if (node.z > -Infinity);
+    // ??? no idea why this was here -Seve
+    // if (node.z > -Infinity);
 
     // Restore the LP tableaux and basis for this node
     const lp = node.lp
@@ -2130,7 +2134,7 @@ function integerFeasibleSolution(solution, cip) {
   const stack = [startingEdge]
   while (stack.length) {
     const fs = stack.pop()
-    cip.edges[fs].terminalIndices.forEach((tpp) => {
+    cip.edges[fs!].terminalIndices.forEach((tpp) => {
       const t = tpp - 1
       if (!vertsLeft.has(t)) return
       vertsLeft.delete(t)
@@ -2217,9 +2221,9 @@ function buildSolution(bbip) {
   const terminals = bbip.cip.terminals
   const solution = bbip.solution
   const length = solution.length
-  const steiners = []
-  const edges = []
-  const edgeIds = []
+  const steiners: any[] = []
+  const edges: any[] = []
+  const edgeIds: any[] = []
   solution.edges.forEach((e) => {
     const fst = bbip.cip.edges[e]
     const steinerOffset = steiners.length
