@@ -1,4 +1,8 @@
-# rsmt
+# Rectilinear Steiner Minimal Trees
+
+> Note: I'm not the original author of this library. I wasn't able to
+> find the source of the [original library](https://www.npmjs.com/package/rsmt), and wanted to update it, adding tests and
+> making it work in browser.
 
 A library to obtain Rectilinear Steiner Minimal Trees.
 
@@ -11,7 +15,7 @@ For more info on the problem that this solves, check [Rectilinear Steiner tree](
 To use it, just do:
 
 ```js
-import rsmt from `rsmt`
+import rsmt from `rsmt-ts`
 
 const nodes = [[0, 0], [1, 2], [4, 1], ...]
 const solution = await rsmt(nodes)
@@ -28,6 +32,6 @@ solution = {
 
 ## Acknowledgements
 
-This library is a reimplementation of the algorithms used in [GeoSteiner](http://www.geosteiner.com/), based on the paper "*A New Exact Algorithm for Rectilinear Steiner Trees*" (David M. Warme, 1997).
+This library is a reimplementation of the algorithms used in [GeoSteiner](http://www.geosteiner.com/), based on the paper "_A New Exact Algorithm for Rectilinear Steiner Trees_" (David M. Warme, 1997).
 
 We also make use of an emscripten build of glpk, named [glpk.js](https://github.com/jvail/glpk.js/).
